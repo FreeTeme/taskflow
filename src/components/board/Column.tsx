@@ -1,0 +1,133 @@
+import { useState, type FormEvent } from 'react'
+import { useDroppable } from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import type { Column as ColumnType, Task } from '../../types/database'
+import { TaskCard } from './TaskCard'
+
+interface ColumnProps {
+  column: ColumnType
+  tasks: Task[]
+  onRename: (columnId: string, title: string) => Promise<void>
+  onDelete: (columnId: string) => Promise<void>
+  onAddTask: (columnId: string, title: string) => Promise<void>
+  onDeleteTask: (taskId: string) => Promise<void>
+  onTaskClick?: (task: Task) => void
+}
+
+export function Column({
+  column,
+  tasks,
+  onRename,
+  onDelete,
+  onAddTask,
+  onDeleteTask,
+  onTaskClick,
+}: ColumnProps) {
+  const [title, setTitle] = useState(column.title)
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [isAdding, setIsAdding] = useState(false)
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+    data: {
+      type: 'column',
+      columnId: column.id,
+    },
+  })
+
+  const sortedTasks = [...tasks].sort((a, b) => a.position - b.position)
+
+  const handleRename = async () => {
+    const trimmed = title.trim()
+    if (!trimmed || trimmed === column.title) {
+      setTitle(column.title)
+      return
+    }
+    await onRename(column.id, trimmed)
+  }
+
+  const handleAddTask = async (event: FormEvent) => {
+    event.preventDefault()
+    const trimmed = newTaskTitle.trim()
+    if (!trimmed) return
+
+    setIsAdding(true)
+    try {
+      await onAddTask(column.id, trimmed)
+      setNewTaskTitle('')
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
+  return (
+    <section
+      className={`flex w-72 shrink-0 flex-col rounded-xl border bg-surface-muted/80 ${
+        isOver ? 'border-primary ring-2 ring-primary/20' : 'border-border'
+      }`}
+    >
+      <div className="flex items-start gap-2 border-b border-border px-3 py-3">
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          onBlur={() => void handleRename()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+            if (event.key === 'Escape') {
+              setTitle(column.title)
+              event.currentTarget.blur()
+            }
+          }}
+          className="min-w-0 flex-1 rounded bg-transparent px-1 text-sm font-semibold text-text outline-none focus:bg-surface"
+          aria-label="Column title"
+        />
+        <button
+          type="button"
+          onClick={() => void onDelete(column.id)}
+          className="rounded px-1 text-xs text-text-muted transition hover:bg-danger/10 hover:text-danger"
+          aria-label={`Delete ${column.title}`}
+        >
+          Delete
+        </button>
+      </div>
+
+      <div
+        ref={setNodeRef}
+        className="flex min-h-[12rem] flex-1 flex-col gap-2 p-3"
+      >
+        <SortableContext
+          items={sortedTasks.map((task) => task.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {sortedTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onDelete={(taskId) => void onDeleteTask(taskId)}
+              onTaskClick={onTaskClick}
+            />
+          ))}
+        </SortableContext>
+
+        {sortedTasks.length === 0 && (
+          <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-text-muted">
+            Drop tasks here
+          </p>
+        )}
+      </div>
+
+      <form onSubmit={(event) => void handleAddTask(event)} className="p-3 pt-0">
+        <input
+          value={newTaskTitle}
+          onChange={(event) => setNewTaskTitle(event.target.value)}
+          placeholder="Add a task..."
+          disabled={isAdding}
+          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+        />
+      </form>
+    </section>
+  )
+}
