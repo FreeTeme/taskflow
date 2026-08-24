@@ -1,181 +1,70 @@
 # TaskFlow
 
-TaskFlow — kanban-доска для командной работы над задачами. Проект построен на **React 18**, **TypeScript**, **Vite**, **Tailwind CSS** и **Supabase** (PostgreSQL, Auth, Realtime, Storage).
+Kanban-приложение для управления задачами (Jira-lite): доски, колонки, карточки с drag-and-drop, совместный доступ и realtime-обновления.
 
-Пользователи создают доски, управляют колонками и карточками задач, назначают исполнителей, оставляют комментарии и приглашают участников по email.
+**Стек:** React 18 + TypeScript + Vite + Tailwind CSS + Supabase (Postgres, Auth, Realtime, Storage) + React Query + @dnd-kit.
+
+**Репозиторий:** [github.com/FreeTeme/taskflow](https://github.com/FreeTeme/taskflow)
 
 ## Реализованные уровни
 
-### Level 1 — MVP
+| Уровень | Статус | Что есть |
+| --- | --- | --- |
+| **1. MVP** | Готово | Регистрация / вход / выход, защита роутов, доски, колонки, задачи, drag-and-drop, адаптивный UI, лоадеры и ошибки |
+| **2. Full** | Готово | Детали задачи, комментарии, realtime, приглашение участников (owner / member), профиль и аватар |
+| **3. Bonus** | Готово | Фильтры и поиск, лог активности, тёмная тема, Google OAuth, горячие клавиши `N` / `Esc` |
 
-- [x] Аутентификация (email/password, Google OAuth)
-- [x] Защита роутов (`ProtectedRoute`)
-- [x] Список досок и CRUD
-- [x] Kanban с drag-and-drop (`@dnd-kit`)
-- [x] Колонки: создание, переименование, удаление (3 колонки по умолчанию через триггер БД)
-- [x] Схема БД и RLS (`supabase/migrations/001_initial.sql`)
+Не сделано из бонусов: прикрепление файлов к задачам (есть только аватар в Storage).
 
-### Level 2 — Full (реализовано в этом модуле)
-
-- [x] **Комментарии к задачам** — `src/services/comments.ts`, `useComments`, `CommentList`, `CommentForm`
-- [x] **Модальное окно задачи** — редактирование title, description, priority, due_date, assignee; удаление задачи
-- [x] **Участники доски** — просмотр, приглашение по email (RPC), удаление (только owner)
-- [x] **Профиль пользователя** — имя, аватар (Storage bucket `avatars`)
-- [x] **Realtime** — подписки на tasks, columns, comments, board_members с инвалидацией React Query
-
-### Level 3 — Bonus (реализовано)
-
-- [x] **Фильтрация задач** — по priority, assignee, due date (`TaskFilters`, `useTaskFilters`)
-- [x] **Поиск по названию** — `TaskSearch`
-- [x] **Activity log** — локальная лента событий из Realtime (`ActivityLog`)
-- [x] **Тёмная тема** — `ThemeProvider`, переключатель, класс `dark` на `<html>`
-- [x] **Горячие клавиши** — `N` создаёт задачу в первой колонке, `Esc` закрывает модалку
-- [x] **Google OAuth** — `OAuthButton` (`supabase.auth.signInWithOAuth`)
-
-## Быстрый старт
-
-### 1. Клонирование и зависимости
+## Запуск
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/FreeTeme/taskflow.git
 cd taskflow
 npm install
-```
-
-### 2. Переменные окружения
-
-```bash
-cp .env.example .env
-```
-
-Заполните в `.env`:
-
-| Переменная | Описание |
-|---|---|
-| `VITE_SUPABASE_URL` | URL проекта Supabase (Settings → API) |
-| `VITE_SUPABASE_ANON_KEY` | Anon/public key (Settings → API) |
-
-### 3. Миграции Supabase
-
-В **Supabase SQL Editor** выполните по порядку:
-
-1. `supabase/migrations/001_initial.sql` — таблицы, RLS, Realtime
-2. `supabase/migrations/002_storage.sql` — bucket `avatars`, RPC `invite_member_by_email`
-
-### 4. Google OAuth (опционально)
-
-В Supabase Dashboard → Authentication → Providers → Google:
-
-- Включите провайдер Google
-- Добавьте redirect URL: `http://localhost:5173/` (и production URL после деплоя)
-
-### 5. Запуск
-
-```bash
+cp .env.example .env   # заполнить ключи Supabase
 npm run dev
 ```
 
-Приложение: `http://localhost:5173`
+Приложение откроется на `http://localhost:5173`.
 
-## Структура ключевых модулей
+### Как заполнить `.env`
 
-```
-src/
-├── services/          # comments, members, profiles, tasks
-├── hooks/             # useComments, useMembers, useProfile, useRealtimeBoard, useTaskFilters
-├── components/
-│   ├── task/          # TaskModal, TaskCard, TaskFilters, TaskSearch, Comment*
-│   ├── board/         # BoardMembersModal, ActivityLog, BoardPageFeatures
-│   └── auth/          # OAuthButton
-├── pages/             # ProfilePage
-└── providers/         # ThemeProvider
-```
+1. Откройте проект в [Supabase Dashboard](https://supabase.com/dashboard).
+2. `VITE_SUPABASE_URL` — **Settings → Data API → Project URL**  
+   (вид `https://xxxx.supabase.co`).
+3. `VITE_SUPABASE_ANON_KEY` — **Settings → API Keys**  
+   скопируйте **publishable** ключ (`sb_publishable_...`).  
+   Если клиент ругается на формат — на той же странице откройте **Legacy API keys** и возьмите **anon** (`eyJ...`).
+4. Secret key (`sb_secret_...`) во фронтенд **не** кладите.
 
-## Интеграция с BoardPage
+### База данных
 
-Компонент `BoardPageFeatures` объединяет фильтры, поиск, realtime, activity log, hotkeys и модалки:
+В **SQL Editor** выполните по порядку:
 
-```tsx
-import { BoardPageFeatures } from './components/board/BoardPageFeatures'
-import { TaskCard } from './components/board/TaskCard'
+1. [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql) — таблицы, RLS, realtime
+2. [`supabase/migrations/002_storage.sql`](supabase/migrations/002_storage.sql) — аватары и приглашение по email
 
-function BoardPage() {
-  const { selectedTask, openTask, closeTask } = useTaskModalSelection()
-  const tasks = /* из useQuery */
+### Auth
 
-  return (
-    <>
-      <BoardPageFeatures
-        boardId={board.id}
-        ownerId={board.owner_id}
-        tasks={tasks}
-        firstColumnId={columns[0]?.id}
-        onCreateTask={(columnId) => createTask({ columnId, title: 'New task' })}
-      />
-      {/* Kanban columns — передайте filteredTasks из useTaskFilters или фильтруйте локально */}
-      <TaskCard task={task} onTaskClick={openTask} />
-      <TaskModal task={selectedTask} boardId={board.id} open={!!selectedTask} onClose={closeTask} />
-    </>
-  )
-}
-```
+- Email + пароль: включите Email provider.
+- Google OAuth (бонус): Authentication → Providers → Google, redirect `http://localhost:5173/**` и URL продакшена после деплоя.
 
-`TaskCard` (`src/components/board/TaskCard.tsx`) принимает `onTaskClick` для открытия `TaskModal`.
+## Деплой (Vercel)
 
-Для входа через Google добавьте в форму логина:
+1. Import репозитория на [vercel.com](https://vercel.com).
+2. Framework: Vite, build: `npm run build`, output: `dist`.
+3. Env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+4. В Supabase → Authentication → URL Configuration добавьте Vercel URL в Site URL и Redirect URLs.
 
-```tsx
-import { OAuthButton } from './components/auth/OAuthButton'
-```
+Ссылка на продакшен: *будет добавлена после деплоя*.
 
-Оберните приложение в провайдеры:
+Тестовый пользователь: зарегистрируйте аккаунт через форму Sign up (email + пароль). После применения миграций при создании доски появляются колонки To Do / In Progress / Done.
 
-```tsx
-<ThemeProvider>
-  <QueryProvider>
-    <AuthProvider>
-      <ToastProvider>{/* routes */}</ToastProvider>
-    </AuthProvider>
-  </QueryProvider>
-</ThemeProvider>
-```
+## Что бы улучшили при наличии времени
 
-## Деплой на Vercel
-
-1. Подключите репозиторий в [Vercel](https://vercel.com)
-2. Framework Preset: **Vite**
-3. Build Command: `npm run build`
-4. Output Directory: `dist`
-5. Environment Variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-6. В Supabase Auth → URL Configuration добавьте production URL в **Site URL** и **Redirect URLs**
-7. Для Google OAuth добавьте production redirect URL
-
-```bash
-npm run build   # локальная проверка сборки
-```
-
-## Скрипты
-
-| Команда | Описание |
-|---|---|
-| `npm run dev` | Dev-сервер Vite |
-| `npm run build` | Typecheck + production build |
-| `npm run preview` | Превью production-сборки |
-| `npm run lint` | Oxlint |
-
-## Будущие улучшения
-
-- Уведомления по email при назначении задачи или новом комментарии
-- Вложения к задачам (Storage bucket `attachments`)
-- @mentions в комментариях с автодополнением участников доски
-- История изменений задачи (audit log в БД вместо локального ActivityLog)
-- Offline-first / optimistic updates для DnD
-- E2E-тесты (Playwright) и unit-тесты для фильтров
-- Push-уведомления через Supabase Edge Functions
-- Экспорт доски в CSV/JSON
-
-## Лицензия
-
-MIT
+- Деплой на Vercel и демо-аккаунт в README
+- Вложения файлов к задачам
+- Постоянный audit log в БД вместо локальной ленты
+- Юнит-тесты ключевых хуков (`useTasks`, фильтры)
+- Уведомления о назначении задачи и новых комментариях
