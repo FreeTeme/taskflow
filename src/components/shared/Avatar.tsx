@@ -30,15 +30,16 @@ export function Avatar({
     return (
       <img
         src={src}
-        alt={displayName}
-        className={`rounded-full object-cover ${sizeClasses[size]} ${className}`}
+        alt={`${displayName} profile picture`}
+        className={`rounded-full object-cover outline outline-1 outline-black/10 dark:outline-white/10 ${sizeClasses[size]} ${className}`}
       />
     )
   }
 
   return (
     <div
-      aria-label={displayName}
+      role="img"
+      aria-label={`${displayName} profile picture`}
       className={`inline-flex items-center justify-center rounded-full bg-primary/10 font-semibold text-primary ${sizeClasses[size]} ${className}`}
     >
       {getInitials(displayName)}

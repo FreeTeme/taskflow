@@ -1,5 +1,12 @@
 export type BoardRole = 'owner' | 'member'
 export type TaskPriority = 'low' | 'medium' | 'high'
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   public: {
@@ -133,6 +140,12 @@ export type Database = {
           p_email: string
         }
         Returns: string
+      }
+      reorder_tasks: {
+        Args: {
+          p_updates: Json
+        }
+        Returns: undefined
       }
     }
     Enums: Record<string, never>

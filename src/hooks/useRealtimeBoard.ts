@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { queryKeys } from '../lib/queryKeys'
 import { commentsQueryKey } from './useComments'
 import { membersQueryKey } from './useMembers'
+import type { Column, CommentWithAuthor, Task } from '../types/database'
 
 export interface ActivityEvent {
   id: string
@@ -42,6 +43,28 @@ export function useRealtimeBoard(
       void queryClient.invalidateQueries({ queryKey: membersQueryKey(boardId) })
     }
 
+    const belongsToCurrentBoard = (record: {
+      id?: string
+      column_id?: string
+      task_id?: string
+    } | null): boolean => {
+      if (!record) return false
+
+      const columns = queryClient.getQueryData<Column[]>(
+        queryKeys.columns.byBoard(boardId),
+      ) ?? []
+      const tasks = queryClient.getQueryData<Task[]>(
+        queryKeys.tasks.byBoard(boardId),
+      ) ?? []
+
+      if (record.column_id) {
+        return columns.some((column) => column.id === record.column_id)
+      }
+
+      const taskId = record.task_id ?? record.id
+      return Boolean(taskId && tasks.some((task) => task.id === taskId))
+    }
+
     const channel = supabase
       .channel(`board:${boardId}`)
       .on(
@@ -52,9 +75,14 @@ export function useRealtimeBoard(
           table: 'tasks',
         },
         (payload) => {
-          invalidateBoard()
+          const record = (payload.new ?? payload.old) as {
+            id?: string
+            column_id?: string
+            title?: string
+          } | null
+          if (!belongsToCurrentBoard(record)) return
 
-          const record = (payload.new ?? payload.old) as { title?: string } | null
+          invalidateBoard()
           const title = record?.title ?? 'task'
 
           if (payload.eventType === 'INSERT') {
@@ -98,8 +126,17 @@ export function useRealtimeBoard(
         },
         (payload) => {
           const record = payload.new as { task_id?: string } | null
-          const oldRecord = payload.old as { task_id?: string } | null
-          const taskId = record?.task_id ?? oldRecord?.task_id
+          const oldRecord = payload.old as { id?: string; task_id?: string } | null
+          const cachedComment = oldRecord?.id
+            ? queryClient
+                .getQueriesData<CommentWithAuthor[]>({ queryKey: ['comments'] })
+                .flatMap(([, comments]) => comments ?? [])
+                .find((comment) => comment.id === oldRecord.id)
+            : undefined
+          const taskId =
+            record?.task_id ?? oldRecord?.task_id ?? cachedComment?.task_id
+
+          if (!belongsToCurrentBoard(taskId ? { task_id: taskId } : null)) return
 
           if (taskId) {
             void queryClient.invalidateQueries({ queryKey: commentsQueryKey(taskId) })

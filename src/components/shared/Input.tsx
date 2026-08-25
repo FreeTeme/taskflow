@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes } from 'react'
+import { forwardRef, useId, type InputHTMLAttributes } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -6,8 +6,13 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, id, className = '', ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+  ({ label, error, id, className = '', 'aria-describedby': ariaDescribedBy, 'aria-invalid': ariaInvalid, ...props }, ref) => {
+    const generatedId = useId()
+    const inputId = id ?? `input-${generatedId}`
+    const errorId = `${inputId}-error`
+    const describedBy = [ariaDescribedBy, error ? errorId : null]
+      .filter(Boolean)
+      .join(' ') || undefined
 
     return (
       <div className="flex flex-col gap-1.5">
@@ -19,12 +24,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
-          className={`h-10 w-full rounded-lg border bg-surface px-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+          aria-invalid={error ? true : ariaInvalid}
+          aria-describedby={describedBy}
+          className={`min-h-10 w-full rounded-lg border bg-surface px-3 text-base text-text outline-none transition-[border-color,box-shadow] placeholder:text-text-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 sm:text-sm ${
             error ? 'border-danger' : 'border-border'
           } ${className}`}
           {...props}
         />
-        {error ? <p className="text-sm text-danger">{error}</p> : null}
+        {error ? <p id={errorId} className="text-sm text-danger">{error}</p> : null}
       </div>
     )
   },

@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useBoardHotkeys } from '../../hooks/useBoardHotkeys'
 import { useMembers } from '../../hooks/useMembers'
 import {
@@ -20,21 +20,25 @@ interface BoardPageFeaturesProps {
   tasks: Task[]
   firstColumnId?: string
   onCreateTask: (columnId: string) => void | Promise<void>
-  children: (filteredTasks: Task[], openTask: (task: Task) => void) => ReactNode
+  children: (
+    filteredTasks: Task[],
+    openTask: (task: Task) => void,
+    allTasks: Task[],
+  ) => ReactNode
 }
 
 export function useTaskModalSelection() {
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const openTask = useCallback((task: Task) => {
-    setSelectedTask(task)
+    setSelectedTaskId(task.id)
   }, [])
 
   const closeTask = useCallback(() => {
-    setSelectedTask(null)
+    setSelectedTaskId(null)
   }, [])
 
-  return { selectedTask, openTask, closeTask }
+  return { selectedTaskId, openTask, closeTask }
 }
 
 export function BoardPageFeatures({
@@ -45,7 +49,7 @@ export function BoardPageFeatures({
   onCreateTask,
   children,
 }: BoardPageFeaturesProps) {
-  const { selectedTask, openTask, closeTask } = useTaskModalSelection()
+  const { selectedTaskId, openTask, closeTask } = useTaskModalSelection()
   const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
   const [membersOpen, setMembersOpen] = useState(false)
 
@@ -59,6 +63,11 @@ export function BoardPageFeatures({
     setSearch,
     resetFilters,
   } = useTaskFilters(tasks)
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null
+
+  useEffect(() => {
+    if (selectedTaskId && !selectedTask) closeTask()
+  }, [selectedTaskId, selectedTask, closeTask])
 
   const handleActivity = useCallback((event: ActivityEvent) => {
     setActivityEvents((current) => [event, ...current].slice(0, 50))
@@ -73,7 +82,7 @@ export function BoardPageFeatures({
         }
       : undefined,
     onCloseModal: closeTask,
-    modalOpen: !!selectedTask,
+    modalOpen: !!selectedTaskId,
   })
 
   return (
@@ -107,12 +116,12 @@ export function BoardPageFeatures({
         />
       </div>
 
-      {children(filteredTasks, openTask)}
+      {children(filteredTasks, openTask, tasks)}
 
       <TaskModal
         task={selectedTask}
         boardId={boardId}
-        open={!!selectedTask}
+        open={!!selectedTaskId && !!selectedTask}
         onClose={closeTask}
       />
 

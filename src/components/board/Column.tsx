@@ -10,16 +10,18 @@ import { TaskCard } from './TaskCard'
 interface ColumnProps {
   column: ColumnType
   tasks: Task[]
+  canManageColumns: boolean
   onRename: (columnId: string, title: string) => Promise<void>
-  onDelete: (columnId: string) => Promise<void>
+  onDelete: (columnId: string) => void | Promise<void>
   onAddTask: (columnId: string, title: string) => Promise<void>
-  onDeleteTask: (taskId: string) => Promise<void>
+  onDeleteTask: (taskId: string) => void | Promise<void>
   onTaskClick?: (task: Task) => void
 }
 
 export function Column({
   column,
   tasks,
+  canManageColumns,
   onRename,
   onDelete,
   onAddTask,
@@ -70,28 +72,28 @@ export function Column({
       }`}
     >
       <div className="flex items-start gap-2 border-b border-border px-3 py-3">
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          onBlur={() => void handleRename()}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') event.currentTarget.blur()
-            if (event.key === 'Escape') {
-              setTitle(column.title)
-              event.currentTarget.blur()
-            }
-          }}
-          className="min-w-0 flex-1 rounded bg-transparent px-1 text-sm font-semibold text-text outline-none focus:bg-surface"
-          aria-label="Column title"
-        />
-        <button
+        {canManageColumns ? <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            onBlur={() => void handleRename()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur()
+              if (event.key === 'Escape') {
+                setTitle(column.title)
+                event.currentTarget.blur()
+              }
+            }}
+            className="min-h-10 min-w-0 flex-1 rounded bg-transparent px-1 text-base font-semibold text-text outline-none focus:bg-surface focus-visible:ring-2 focus-visible:ring-primary/30 sm:text-sm"
+            aria-label="Column title"
+          /> : <h2 className="min-w-0 flex-1 px-1 py-2 text-sm font-semibold text-text">{column.title}</h2>}
+        {canManageColumns ? <button
           type="button"
           onClick={() => void onDelete(column.id)}
-          className="rounded px-1 text-xs text-text-muted transition hover:bg-danger/10 hover:text-danger"
+          className="min-h-10 rounded px-2 text-xs text-text-muted transition hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
           aria-label={`Delete ${column.title}`}
         >
           Delete
-        </button>
+        </button> : null}
       </div>
 
       <div
@@ -125,7 +127,7 @@ export function Column({
           onChange={(event) => setNewTaskTitle(event.target.value)}
           placeholder="Add a task..."
           disabled={isAdding}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 sm:text-sm"
         />
       </form>
     </section>

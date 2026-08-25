@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { Task, TaskPriority } from '../types/database'
+import type { Profile, Task, TaskPriority, TaskWithAssignee } from '../types/database'
 
 export type TaskUpdatePayload = Partial<
   Pick<
@@ -24,7 +24,39 @@ export interface CreateTaskParams {
   priority?: TaskPriority
 }
 
-export async function fetchTasksByBoard(boardId: string): Promise<Task[]> {
+async function attachAssignees(tasks: Task[]): Promise<TaskWithAssignee[]> {
+  const assigneeIds = [
+    ...new Set(
+      tasks
+        .map((task) => task.assignee_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ]
+
+  if (assigneeIds.length === 0) {
+    return tasks.map((task) => ({ ...task, assignee: null }))
+  }
+
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', assigneeIds)
+
+  if (error) throw error
+
+  const profilesById = new Map<string, Profile>(
+    (profiles ?? []).map((profile) => [profile.id, profile]),
+  )
+
+  return tasks.map((task) => ({
+    ...task,
+    assignee: task.assignee_id
+      ? profilesById.get(task.assignee_id) ?? null
+      : null,
+  }))
+}
+
+export async function fetchTasksByBoard(boardId: string): Promise<TaskWithAssignee[]> {
   const { data: columns, error: columnsError } = await supabase
     .from('columns')
     .select('id')
@@ -42,7 +74,7 @@ export async function fetchTasksByBoard(boardId: string): Promise<Task[]> {
     .order('position', { ascending: true })
 
   if (error) throw error
-  return data ?? []
+  return attachAssignees(data ?? [])
 }
 
 export async function createTask({
@@ -89,12 +121,10 @@ export async function deleteTask(taskId: string): Promise<void> {
 }
 
 export async function moveTask(updates: TaskMoveUpdate[]): Promise<void> {
-  const results = await Promise.all(
-    updates.map(({ id, column_id, position }) =>
-      supabase.from('tasks').update({ column_id, position }).eq('id', id),
-    ),
-  )
+  if (updates.length === 0) return
 
-  const error = results.find((result) => result.error)?.error
+  const { error } = await supabase.rpc('reorder_tasks', {
+    p_updates: updates,
+  })
   if (error) throw error
 }

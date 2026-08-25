@@ -5,17 +5,19 @@ import { Column } from './Column'
 interface ColumnListProps {
   columns: ColumnType[]
   tasksByColumn: Record<string, Task[]>
+  canManageColumns: boolean
   onRenameColumn: (columnId: string, title: string) => Promise<void>
-  onDeleteColumn: (columnId: string) => Promise<void>
+  onDeleteColumn: (columnId: string) => void | Promise<void>
   onAddColumn: (title: string) => Promise<void>
   onAddTask: (columnId: string, title: string) => Promise<void>
-  onDeleteTask: (taskId: string) => Promise<void>
+  onDeleteTask: (taskId: string) => void | Promise<void>
   onTaskClick?: (task: Task) => void
 }
 
 export function ColumnList({
   columns,
   tasksByColumn,
+  canManageColumns,
   onRenameColumn,
   onDeleteColumn,
   onAddColumn,
@@ -50,6 +52,7 @@ export function ColumnList({
             key={column.id}
             column={column}
             tasks={tasksByColumn[column.id] ?? []}
+            canManageColumns={canManageColumns}
             onRename={onRenameColumn}
             onDelete={onDeleteColumn}
             onAddTask={onAddTask}
@@ -58,7 +61,7 @@ export function ColumnList({
           />
         ))}
 
-        <section className="flex w-72 shrink-0 flex-col rounded-xl border border-dashed border-border bg-surface/50 p-3">
+        {canManageColumns ? <section className="flex w-72 shrink-0 flex-col rounded-xl border border-dashed border-border bg-surface/50 p-3">
           <h2 className="mb-3 text-sm font-semibold text-text">Add column</h2>
           <form onSubmit={(event) => void handleAddColumn(event)}>
             <input
@@ -66,17 +69,17 @@ export function ColumnList({
               onChange={(event) => setNewColumnTitle(event.target.value)}
               placeholder="Column name"
               disabled={isAddingColumn}
-              className="mb-2 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+              className="mb-2 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 sm:text-sm"
             />
             <button
               type="submit"
               disabled={isAddingColumn || !newColumnTitle.trim()}
-              className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-10 w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isAddingColumn ? 'Adding...' : 'Add column'}
             </button>
           </form>
-        </section>
+        </section> : null}
       </div>
     </div>
   )

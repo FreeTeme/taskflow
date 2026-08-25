@@ -3,6 +3,8 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -28,16 +30,27 @@ interface ToastProviderProps {
 
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timersRef = useRef(new Map<number, number>())
+
+  useEffect(() => () => {
+    timersRef.current.forEach((timer) => window.clearTimeout(timer))
+  }, [])
 
   const dismiss = useCallback((id: number) => {
+    const timer = timersRef.current.get(id)
+    if (timer) window.clearTimeout(timer)
+    timersRef.current.delete(id)
     setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
 
   const addToast = useCallback(
     (message: string, type: ToastType) => {
-      const id = Date.now()
+      const id = Date.now() + Math.random()
       setToasts((current) => [...current, { id, message, type }])
-      window.setTimeout(() => dismiss(id), 4000)
+      if (type === 'success') {
+        const timer = window.setTimeout(() => dismiss(id), 5000)
+        timersRef.current.set(id, timer)
+      }
     },
     [dismiss],
   )
@@ -55,19 +68,27 @@ export function ToastProvider({ children }: ToastProviderProps) {
       {children}
       <div
         className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4"
-        aria-live="polite"
       >
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            role="alert"
-            className={`pointer-events-auto w-full max-w-sm rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
+            role={toast.type === 'error' ? 'alert' : 'status'}
+            aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+            className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
               toast.type === 'success'
-                ? 'bg-success text-white'
-                : 'bg-danger text-white'
+                ? 'bg-success-fill text-success-foreground'
+                : 'bg-danger-fill text-danger-foreground'
             }`}
           >
-            {toast.message}
+            <span className="min-w-0 flex-1 text-pretty">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => dismiss(toast.id)}
+              className="-my-2 -mr-2 inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-lg opacity-80 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+              aria-label="Dismiss notification"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
           </div>
         ))}
       </div>

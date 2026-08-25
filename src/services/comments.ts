@@ -56,6 +56,13 @@ export async function addComment(
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
-  const { error } = await supabase.from('comments').delete().eq('id', commentId)
+  const { data, error } = await supabase
+    .from('comments')
+    .delete()
+    .eq('id', commentId)
+    .select('id')
+    .maybeSingle()
+
   if (error) throw error
+  if (!data) throw new Error('Comment was not deleted')
 }

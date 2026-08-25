@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { getAuthErrorMessage } from '../../lib/authErrors'
 import { useAuth } from '../../providers/AuthProvider'
 import { useToast } from '../../providers/ToastProvider'
 import { Button } from '../shared/Button'
@@ -17,17 +18,27 @@ export function RegisterForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
-
-    const { error } = await signUp(email, password, name.trim() || undefined)
-
-    if (error) {
-      toast.error(error.message)
+    try {
+      const { error, needsEmailConfirmation } = await signUp(
+        email,
+        password,
+        name.trim() || undefined,
+      )
+      if (error) {
+        toast.error(getAuthErrorMessage(error.message, error.code))
+        return
+      }
+      if (needsEmailConfirmation) {
+        toast.success('Account created. Open the confirmation link we sent to your email, then sign in.')
+        navigate('/login', { replace: true })
+        return
+      }
+      navigate('/', { replace: true })
+    } catch {
+      toast.error('Unable to create your account. Check your connection and try again.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    toast.success('Account created! You can now sign in.')
-    navigate('/login', { replace: true })
   }
 
   return (
@@ -35,6 +46,7 @@ export function RegisterForm() {
       <Input
         label="Name"
         type="text"
+        name="name"
         autoComplete="name"
         value={name}
         onChange={(event) => setName(event.target.value)}
@@ -43,6 +55,7 @@ export function RegisterForm() {
       <Input
         label="Email"
         type="email"
+        name="email"
         autoComplete="email"
         required
         value={email}
@@ -52,6 +65,7 @@ export function RegisterForm() {
       <Input
         label="Password"
         type="password"
+        name="password"
         autoComplete="new-password"
         required
         minLength={6}
@@ -64,7 +78,7 @@ export function RegisterForm() {
       </Button>
       <p className="text-center text-sm text-text-muted">
         Already have an account?{' '}
-        <Link to="/login" className="font-medium text-primary hover:underline">
+        <Link to="/login" className="rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           Sign in
         </Link>
       </p>

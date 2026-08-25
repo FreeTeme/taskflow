@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   closestCorners,
   useSensor,
@@ -10,7 +11,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Column, Task } from '../../types/database'
 import {
   buildMoveUpdates,
@@ -22,11 +23,13 @@ import { TaskCardPreview } from './TaskCardPreview'
 interface KanbanBoardProps {
   columns: Column[]
   tasks: Task[]
+  visibleTasks?: Task[]
+  canManageColumns: boolean
   onAddColumn: (title: string) => Promise<void>
   onRenameColumn: (columnId: string, title: string) => Promise<void>
-  onDeleteColumn: (columnId: string) => Promise<void>
+  onDeleteColumn: (columnId: string) => void | Promise<void>
   onAddTask: (columnId: string, title: string) => Promise<void>
-  onDeleteTask: (taskId: string) => Promise<void>
+  onDeleteTask: (taskId: string) => void | Promise<void>
   onMoveTask: (
     updates: { id: string; column_id: string; position: number }[],
   ) => Promise<void>
@@ -51,6 +54,8 @@ function cloneTasksByColumn(
 export function KanbanBoard({
   columns,
   tasks,
+  visibleTasks = tasks,
+  canManageColumns,
   onAddColumn,
   onRenameColumn,
   onDeleteColumn,
@@ -75,6 +80,21 @@ export function KanbanBoard({
   const [tasksByColumn, setTasksByColumn] = useState(serverTasksByColumn)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
 
+  const visibleTaskIds = useMemo(
+    () => new Set(visibleTasks.map((task) => task.id)),
+    [visibleTasks],
+  )
+
+  const visibleTasksByColumn = useMemo(
+    () => Object.fromEntries(
+      Object.entries(tasksByColumn).map(([columnId, columnTasks]) => [
+        columnId,
+        columnTasks.filter((task) => visibleTaskIds.has(task.id)),
+      ]),
+    ),
+    [tasksByColumn, visibleTaskIds],
+  )
+
   useEffect(() => {
     if (!activeTask) {
       setTasksByColumn(serverTasksByColumn)
@@ -84,6 +104,9 @@ export function KanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
 
@@ -191,9 +214,8 @@ export function KanbanBoard({
 
     setTasksByColumn(nextTasksByColumn)
 
-    const overIndex = (nextTasksByColumn[overContainer] ?? []).findIndex(
-      (task) => task.id === activeId,
-    )
+    const targetTasks = nextTasksByColumn[overContainer] ?? []
+    const overIndex = targetTasks.findIndex((task) => task.id === activeId)
 
     if (overIndex === -1) return
 
@@ -213,13 +235,20 @@ export function KanbanBoard({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      accessibility={{
+        screenReaderInstructions: {
+          draggable:
+            'To pick up a task, press Space. Use the arrow keys to move it, then press Space to drop it. Press Escape to cancel.',
+        },
+      }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={(event) => void handleDragEnd(event)}
     >
       <ColumnList
         columns={columns}
-        tasksByColumn={tasksByColumn}
+        tasksByColumn={visibleTasksByColumn}
+        canManageColumns={canManageColumns}
         onRenameColumn={onRenameColumn}
         onDeleteColumn={onDeleteColumn}
         onAddColumn={onAddColumn}

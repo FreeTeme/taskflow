@@ -1,10 +1,12 @@
 import type { AuthError, Session, User } from '@supabase/supabase-js'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -18,7 +20,7 @@ interface AuthContextValue {
     email: string,
     password: string,
     name?: string,
-  ) => Promise<{ error: AuthError | null }>
+  ) => Promise<{ error: AuthError | null; needsEmailConfirmation: boolean }>
   signIn: (
     email: string,
     password: string,
@@ -33,42 +35,62 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const queryClient = useQueryClient()
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const activeUserIdRef = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
     let mounted = true
 
-    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      if (mounted) {
-        setSession(initialSession)
-        setLoading(false)
+    const applySession = (nextSession: Session | null) => {
+      if (!mounted) return
+
+      const nextUserId = nextSession?.user.id ?? null
+      if (
+        activeUserIdRef.current !== undefined
+        && activeUserIdRef.current !== nextUserId
+      ) {
+        // All server data in this app is private. Clear queries and mutations
+        // before rendering data for a different authenticated identity.
+        queryClient.clear()
       }
+
+      activeUserIdRef.current = nextUserId
+      setSession(nextSession)
+      setLoading(false)
+    }
+
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      applySession(initialSession)
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (mounted) {
-        setSession(nextSession)
-        setLoading(false)
-      }
+      applySession(nextSession)
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [queryClient])
 
   const signUp = useCallback(
     async (email: string, password: string, name?: string) => {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: name ? { data: { name } } : undefined,
+        options: {
+          data: name ? { name } : undefined,
+          emailRedirectTo: `${window.location.origin}/`,
+        },
       })
-      return { error }
+      return {
+        error,
+        needsEmailConfirmation: !error && !data.session,
+      }
     },
     [],
   )
@@ -82,7 +104,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
   }, [])
 
   const value = useMemo<AuthContextValue>(

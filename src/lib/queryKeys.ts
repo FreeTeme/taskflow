@@ -1,12 +1,12 @@
 export const queryKeys = {
   boards: {
-    all: ['boards'] as const,
-    detail: (boardId: string) => ['boards', boardId] as const,
+    all: (userId: string) => ['private', 'boards', userId] as const,
+    detail: (boardId: string) => ['private', 'boards', 'detail', boardId] as const,
   },
   columns: {
-    byBoard: (boardId: string) => ['columns', boardId] as const,
+    byBoard: (boardId: string) => ['private', 'columns', boardId] as const,
   },
   tasks: {
-    byBoard: (boardId: string) => ['tasks', boardId] as const,
+    byBoard: (boardId: string) => ['private', 'tasks', boardId] as const,
   },
 } as const

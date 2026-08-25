@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BoardListSkeleton } from '../components/ui/Skeleton'
 import { Toast } from '../components/ui/Toast'
 import { ThemeToggle } from '../providers/ThemeProvider'
 import { useAuth } from '../hooks/useAuth'
 import { useBoards } from '../hooks/useBoards'
+import { Button } from '../components/shared/Button'
+import { Input } from '../components/shared/Input'
+import { ConfirmDialog, Modal } from '../components/shared/Modal'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -13,7 +16,7 @@ function getErrorMessage(error: unknown): string {
 
 export function BoardsPage() {
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const {
     boards,
     isLoading,
@@ -22,20 +25,29 @@ export function BoardsPage() {
     createBoard,
     isCreating,
     deleteBoard,
+    isDeleting,
   } = useBoards()
 
   const [title, setTitle] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [titleError, setTitleError] = useState('')
+  const [boardToDelete, setBoardToDelete] = useState<{ id: string; title: string } | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault()
     const trimmed = title.trim()
-    if (!trimmed) return
+    if (!trimmed) {
+      setTitleError('Enter a board title.')
+      titleInputRef.current?.focus()
+      return
+    }
 
     try {
       const board = await createBoard(trimmed)
       setTitle('')
+      setTitleError('')
       setShowCreate(false)
       navigate(`/boards/${board.id}`)
     } catch (createError) {
@@ -43,12 +55,11 @@ export function BoardsPage() {
     }
   }
 
-  const handleDelete = async (boardId: string, boardTitle: string) => {
-    const confirmed = window.confirm(`Delete "${boardTitle}"? This cannot be undone.`)
-    if (!confirmed) return
-
+  const handleDelete = async () => {
+    if (!boardToDelete) return
     try {
-      await deleteBoard(boardId)
+      await deleteBoard(boardToDelete.id)
+      setBoardToDelete(null)
     } catch (deleteError) {
       setToastMessage(getErrorMessage(deleteError))
     }
@@ -64,24 +75,25 @@ export function BoardsPage() {
 
   return (
     <div className="min-h-screen bg-surface-muted">
+      <a href="#main-content" className="skip-link">Skip to boards</a>
       <header className="border-b border-border bg-surface px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div>
             <h1 className="text-2xl font-bold text-text">TaskFlow</h1>
             <p className="text-sm text-text-muted">Your kanban boards</p>
           </div>
-          <nav className="flex items-center gap-3 text-sm">
+          <nav aria-label="Account" className="flex flex-wrap items-center justify-end gap-2 text-sm sm:gap-3">
             <ThemeToggle />
             <Link
               to="/profile"
-              className="font-medium text-text-muted transition hover:text-text"
+              className="inline-flex min-h-10 items-center rounded-md px-2 font-medium text-text-muted transition-colors hover:bg-surface-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Profile
             </Link>
             <button
               type="button"
               onClick={() => void handleSignOut()}
-              className="font-medium text-text-muted transition hover:text-text"
+              className="inline-flex min-h-10 items-center rounded-md px-2 font-medium text-text-muted transition-colors hover:bg-surface-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Log out
             </button>
@@ -89,16 +101,10 @@ export function BoardsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="mb-6 flex items-center justify-between gap-4">
+      <main id="main-content" className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-text">Boards</h2>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-hover"
-          >
-            New board
-          </button>
+          <Button onClick={() => setShowCreate(true)}>Create board</Button>
         </div>
 
         {isLoading && <BoardListSkeleton />}
@@ -112,13 +118,7 @@ export function BoardsPage() {
         {!isLoading && !isError && boards.length === 0 && (
           <div className="rounded-xl border border-dashed border-border bg-surface px-6 py-12 text-center">
             <p className="mb-4 text-text-muted">No boards yet. Create your first one.</p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-hover"
-            >
-              Create board
-            </button>
+            <Button onClick={() => setShowCreate(true)}>Create board</Button>
           </div>
         )}
 
@@ -133,68 +133,42 @@ export function BoardsPage() {
                   <h3 className="mb-2 text-lg font-semibold text-text group-hover:text-primary">
                     {board.title}
                   </h3>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-xs tabular-nums text-text-muted">
                     Created {new Date(board.created_at).toLocaleDateString()}
                   </p>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(board.id, board.title)}
-                  className="mt-4 text-xs font-medium text-text-muted transition hover:text-danger"
-                >
-                  Delete board
-                </button>
+                {board.owner_id === user?.id ? (
+                  <Button variant="ghost" size="sm" onClick={() => setBoardToDelete({ id: board.id, title: board.title })} className="mt-3 text-danger hover:text-danger">
+                    Delete board
+                  </Button>
+                ) : null}
               </article>
             ))}
           </div>
         )}
       </main>
 
-      {showCreate && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-board-title"
-            className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl"
-          >
-            <h2 id="create-board-title" className="mb-4 text-lg font-semibold text-text">
-              Create board
-            </h2>
-            <form onSubmit={(event) => void handleCreate(event)}>
-              <label className="mb-4 block">
-                <span className="mb-2 block text-sm font-medium text-text">Title</span>
-                <input
-                  autoFocus
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="My project board"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-              </label>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreate(false)
-                    setTitle('')
-                  }}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-text-muted transition hover:bg-surface-muted"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating || !title.trim()}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isCreating ? 'Creating...' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setTitle(''); setTitleError('') }} title="Create board" initialFocusRef={titleInputRef} footer={
+        <>
+          <Button variant="secondary" onClick={() => { setShowCreate(false); setTitle(''); setTitleError('') }} disabled={isCreating}>Cancel</Button>
+          <Button type="submit" form="create-board-form" loading={isCreating}>Create board</Button>
+        </>
+      }>
+        <form id="create-board-form" onSubmit={(event) => void handleCreate(event)}>
+          <Input ref={titleInputRef} label="Title" name="title" value={title} onChange={(event) => { setTitle(event.target.value); if (titleError) setTitleError('') }} placeholder="Product launch" error={titleError} required />
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={boardToDelete !== null}
+        title="Delete board?"
+        description={`“${boardToDelete?.title ?? ''}” and all of its columns and tasks will be permanently deleted.`}
+        confirmLabel="Delete board"
+        destructive
+        loading={isDeleting}
+        onClose={() => setBoardToDelete(null)}
+        onConfirm={() => void handleDelete()}
+      />
 
       {toastMessage && (
         <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />

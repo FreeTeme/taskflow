@@ -1,9 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { Task } from '../../types/database'
+import type { Task, TaskWithAssignee } from '../../types/database'
+import { Avatar } from '../shared/Avatar'
 
 interface TaskCardProps {
-  task: Task
+  task: TaskWithAssignee
   onDelete: (taskId: string) => void
   onTaskClick?: (task: Task) => void
 }
@@ -33,15 +34,15 @@ export function TaskCard({ task, onDelete, onTaskClick }: TaskCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg border border-border bg-surface px-3 py-2 shadow-sm transition hover:border-primary/40 hover:shadow ${
+      className={`group rounded-lg border border-border bg-surface px-3 py-2 shadow-sm transition-[border-color,box-shadow,opacity] hover:border-primary/40 hover:shadow ${
         isDragging ? 'opacity-40' : ''
       }`}
     >
       <div className="flex items-start gap-2">
         <button
           type="button"
-          aria-label="Drag task"
-          className="mt-0.5 shrink-0 cursor-grab rounded px-1 text-text-muted active:cursor-grabbing"
+          aria-label={`Move ${task.title}`}
+          className="mt-0.5 min-h-6 min-w-6 shrink-0 cursor-grab rounded px-1 text-text-muted outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
@@ -50,19 +51,31 @@ export function TaskCard({ task, onDelete, onTaskClick }: TaskCardProps) {
         <button
           type="button"
           onClick={() => onTaskClick?.(task)}
-          className="min-w-0 flex-1 text-left text-sm font-medium text-text hover:text-primary"
+          className="min-w-0 flex-1 rounded text-left text-sm font-medium text-text outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           {task.title}
         </button>
         <button
           type="button"
           onClick={() => onDelete(task.id)}
-          className="rounded px-1 text-xs text-text-muted opacity-0 transition hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
+          className="rounded px-1 text-xs text-text-muted opacity-0 outline-none transition-[color,background-color,opacity] hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger group-focus-within:opacity-100 group-hover:opacity-100"
           aria-label={`Delete ${task.title}`}
         >
           Delete
         </button>
       </div>
+      {task.assignee ? (
+        <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+          <Avatar
+            name={task.assignee.name}
+            src={task.assignee.avatar_url}
+            size="sm"
+          />
+          <span className="truncate text-xs text-text-muted">
+            {task.assignee.name ?? 'Assigned member'}
+          </span>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 Kanban-приложение для управления задачами (Jira-lite): доски, колонки, карточки с drag-and-drop, совместный доступ и realtime-обновления.
 
-**Стек:** React 18 + TypeScript + Vite + Tailwind CSS + Supabase (Postgres, Auth, Realtime, Storage) + React Query + @dnd-kit.
+**Стек:** React 19 + TypeScript + Vite + Tailwind CSS + Supabase (Postgres, Auth, Realtime, Storage) + React Query + @dnd-kit.
 
 **Репозиторий:** [github.com/FreeTeme/taskflow](https://github.com/FreeTeme/taskflow)
 
@@ -44,6 +44,7 @@ npm run dev
 
 1. [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql) — таблицы, RLS, realtime
 2. [`supabase/migrations/002_storage.sql`](supabase/migrations/002_storage.sql) — аватары и приглашение по email
+3. [`supabase/migrations/003_data_integrity_and_rls.sql`](supabase/migrations/003_data_integrity_and_rls.sql) — owner/member-права, защита комментариев и assignee, атомарный DnD
 
 ### Auth
 
@@ -57,14 +58,26 @@ npm run dev
 3. Env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 4. В Supabase → Authentication → URL Configuration добавьте Vercel URL в Site URL и Redirect URLs.
 
+`vercel.json` уже содержит SPA rewrite, поэтому прямые переходы и обновление вложенных роутов отдаются через `index.html`.
+
 Ссылка на продакшен: *будет добавлена после деплоя*.
 
 Тестовый пользователь: зарегистрируйте аккаунт через форму Sign up (email + пароль). После применения миграций при создании доски появляются колонки To Do / In Progress / Done.
+
+## Проверки
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+Добавлены unit-тесты для фильтрации задач, user-scoped query keys и расчёта DnD-позиций при активном фильтре.
 
 ## Что бы улучшили при наличии времени
 
 - Деплой на Vercel и демо-аккаунт в README
 - Вложения файлов к задачам
 - Постоянный audit log в БД вместо локальной ленты
-- Юнит-тесты ключевых хуков (`useTasks`, фильтры)
+- Интеграционные тесты RLS/Realtime против отдельного Supabase test project
 - Уведомления о назначении задачи и новых комментариях

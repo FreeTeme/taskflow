@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { getAuthErrorMessage } from '../../lib/authErrors'
 import { useAuth } from '../../providers/AuthProvider'
 import { useToast } from '../../providers/ToastProvider'
 import { OAuthButton } from './OAuthButton'
@@ -17,16 +18,18 @@ export function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
-
-    const { error } = await signIn(email, password)
-
-    if (error) {
-      toast.error(error.message)
+    try {
+      const { error } = await signIn(email, password)
+      if (error) {
+        toast.error(getAuthErrorMessage(error.message, error.code))
+        return
+      }
+      navigate('/', { replace: true })
+    } catch {
+      toast.error('Unable to sign in. Check your connection and try again.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    navigate('/', { replace: true })
   }
 
   return (
@@ -34,6 +37,7 @@ export function LoginForm() {
       <Input
         label="Email"
         type="email"
+        name="email"
         autoComplete="email"
         required
         value={email}
@@ -43,6 +47,7 @@ export function LoginForm() {
       <Input
         label="Password"
         type="password"
+        name="password"
         autoComplete="current-password"
         required
         value={password}
@@ -63,7 +68,7 @@ export function LoginForm() {
       <OAuthButton />
       <p className="text-center text-sm text-text-muted">
         Don&apos;t have an account?{' '}
-        <Link to="/register" className="font-medium text-primary hover:underline">
+        <Link to="/register" className="rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           Create one
         </Link>
       </p>

@@ -10,9 +10,10 @@ import { useAuth } from './useAuth'
 export function useBoards() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const boardsQueryKey = queryKeys.boards.all(user?.id ?? 'anonymous')
 
   const boardsQuery = useQuery({
-    queryKey: queryKeys.boards.all,
+    queryKey: boardsQueryKey,
     queryFn: fetchBoards,
     enabled: !!user,
   })
@@ -23,14 +24,14 @@ export function useBoards() {
       return createBoard(title, user.id)
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.boards.all })
+      void queryClient.invalidateQueries({ queryKey: boardsQueryKey })
     },
   })
 
   const deleteBoardMutation = useMutation({
     mutationFn: deleteBoard,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.boards.all })
+      void queryClient.invalidateQueries({ queryKey: boardsQueryKey })
     },
   })
 
