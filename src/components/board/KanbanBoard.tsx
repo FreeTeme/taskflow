@@ -176,13 +176,20 @@ export function KanbanBoard({
 
     const activeId = String(active.id)
     const overId = String(over.id)
-    const overColumnId = over.data.current?.columnId
     const overContainer =
-      typeof overColumnId === 'string'
-        ? overColumnId
-        : findContainer(overId)
+      columnIds.includes(overId)
+        ? overId
+        : columnIds.find((columnId) =>
+            serverTasksByColumn[columnId]?.some((task) => task.id === overId),
+          )
 
     if (!overContainer) return
+
+    const sourceColumnId = columnIds.find((columnId) =>
+      serverTasksByColumn[columnId]?.some((task) => task.id === activeId),
+    )
+
+    if (!sourceColumnId) return
 
     const targetTasks = serverTasksByColumn[overContainer] ?? []
     const targetIndex = columnIds.includes(overId)
@@ -190,9 +197,8 @@ export function KanbanBoard({
       : targetTasks.findIndex((task) => task.id === overId)
     const overIndex = targetIndex >= 0 ? targetIndex : targetTasks.length
 
-    const sourceColumnId = active.data.current?.columnId
     const updates =
-      typeof sourceColumnId === 'string' && sourceColumnId !== overContainer
+      sourceColumnId !== overContainer
         ? (() => {
             const sourceIds = (serverTasksByColumn[sourceColumnId] ?? [])
               .filter((task) => task.id !== activeId)
