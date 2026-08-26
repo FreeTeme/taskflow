@@ -121,14 +121,22 @@ export function Column({
         )}
       </div>
 
-      <form onSubmit={(event) => void handleAddTask(event)} className="p-3 pt-0">
+      <form onSubmit={(event) => void handleAddTask(event)} className="flex gap-2 p-3 pt-0">
         <input
           value={newTaskTitle}
           onChange={(event) => setNewTaskTitle(event.target.value)}
           placeholder="Add a task..."
           disabled={isAdding}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 sm:text-sm"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 sm:text-sm"
         />
+        <button
+          type="submit"
+          disabled={isAdding || !newTaskTitle.trim()}
+          className="min-h-10 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Add
+          <span className="sr-only"> task to {column.title}</span>
+        </button>
       </form>
     </section>
   )

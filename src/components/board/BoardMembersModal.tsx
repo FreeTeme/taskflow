@@ -25,6 +25,7 @@ export function BoardMembersModal({
   const { members, inviteMember, removeMember, isInviting, isRemoving } =
     useMembers(boardId)
   const [email, setEmail] = useState('')
+  const [memberToRemove, setMemberToRemove] = useState<BoardMemberWithProfile | null>(null)
 
   const isOwner = user?.id === ownerId
 
@@ -48,13 +49,29 @@ export function BoardMembersModal({
     try {
       await removeMember(member.id)
       toast.success('Member removed')
+      setMemberToRemove(null)
     } catch {
       toast.error('Failed to remove member')
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Board members">
+    <Modal
+      open={open}
+      onClose={() => {
+        setMemberToRemove(null)
+        onClose()
+      }}
+      title={memberToRemove ? 'Remove member?' : 'Board members'}
+      description={memberToRemove ? `${memberToRemove.profile?.name ?? 'This member'} will lose access to the board and will be unassigned from its tasks.` : undefined}
+      footer={memberToRemove ? (
+        <>
+          <Button variant="secondary" onClick={() => setMemberToRemove(null)} disabled={isRemoving}>Cancel</Button>
+          <Button variant="danger" loading={isRemoving} onClick={() => void handleRemove(memberToRemove)}>Remove member</Button>
+        </>
+      ) : undefined}
+    >
+      {memberToRemove ? null : (
       <div className="flex flex-col gap-4">
         <ul className="flex flex-col gap-2">
           {members.map((member) => (
@@ -73,7 +90,7 @@ export function BoardMembersModal({
                   variant="ghost"
                   size="sm"
                   loading={isRemoving}
-                  onClick={() => void handleRemove(member)}
+                  onClick={() => setMemberToRemove(member)}
                 >
                   Remove
                 </Button>
@@ -101,6 +118,7 @@ export function BoardMembersModal({
           <p className="text-sm text-text-muted">Only the board owner can invite members.</p>
         )}
       </div>
+      )}
     </Modal>
   )
 }

@@ -7,7 +7,7 @@ import { KanbanSkeleton } from '../components/ui/Skeleton'
 import { Toast } from '../components/ui/Toast'
 import { useBoard } from '../hooks/useBoard'
 import { useColumns } from '../hooks/useColumns'
-import { useTasks } from '../hooks/useTasks'
+import { buildMoveUpdates, groupTasksByColumn, useTasks } from '../hooks/useTasks'
 import { ConfirmDialog } from '../components/shared/Modal'
 import { useAuth } from '../providers/AuthProvider'
 
@@ -87,7 +87,14 @@ export function BoardPage() {
           boardId={boardId}
           ownerId={boardQuery.data.owner_id}
           tasks={tasksHook.tasks}
+          columns={columnsHook.columns}
           firstColumnId={firstColumnId}
+          onMoveTask={async (taskId, targetColumnId) => {
+            const grouped = groupTasksByColumn(tasksHook.tasks)
+            const targetIndex = grouped[targetColumnId]?.length ?? 0
+            const updates = buildMoveUpdates(grouped, taskId, targetColumnId, targetIndex)
+            await tasksHook.moveTask(updates)
+          }}
           onCreateTask={(columnId) =>
             runAction(async () => {
               const columnTasks = tasksHook.tasks.filter(

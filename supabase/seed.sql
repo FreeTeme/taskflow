@@ -1,0 +1,2 @@
+-- The end-to-end test creates isolated users and data through the public API.
+-- Keep the default local database deterministic and empty after `supabase db reset`.

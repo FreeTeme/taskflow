@@ -6,7 +6,7 @@ import {
   type ActivityEvent,
 } from '../../hooks/useRealtimeBoard'
 import { useTaskFilters } from '../../hooks/useTaskFilters'
-import type { Task } from '../../types/database'
+import type { Column, Task } from '../../types/database'
 import { ThemeToggle } from '../../providers/ThemeProvider'
 import { TaskFilters } from '../task/TaskFilters'
 import { TaskModal } from '../task/TaskModal'
@@ -18,8 +18,10 @@ interface BoardPageFeaturesProps {
   boardId: string
   ownerId: string
   tasks: Task[]
+  columns: Column[]
   firstColumnId?: string
   onCreateTask: (columnId: string) => void | Promise<void>
+  onMoveTask: (taskId: string, targetColumnId: string) => Promise<void>
   children: (
     filteredTasks: Task[],
     openTask: (task: Task) => void,
@@ -45,8 +47,10 @@ export function BoardPageFeatures({
   boardId,
   ownerId,
   tasks,
+  columns,
   firstColumnId,
   onCreateTask,
+  onMoveTask,
   children,
 }: BoardPageFeaturesProps) {
   const { selectedTaskId, openTask, closeTask } = useTaskModalSelection()
@@ -121,6 +125,8 @@ export function BoardPageFeatures({
       <TaskModal
         task={selectedTask}
         boardId={boardId}
+        columns={columns}
+        onMoveTask={onMoveTask}
         open={!!selectedTaskId && !!selectedTask}
         onClose={closeTask}
       />

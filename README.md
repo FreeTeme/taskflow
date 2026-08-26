@@ -6,6 +6,8 @@ Kanban-приложение для управления задачами (Jira-l
 
 **Репозиторий:** [github.com/FreeTeme/taskflow](https://github.com/FreeTeme/taskflow)
 
+**Production:** [taskflow-one-livid-94.vercel.app](https://taskflow-one-livid-94.vercel.app)
+
 ## Реализованные уровни
 
 | Уровень | Статус | Что есть |
@@ -38,6 +40,25 @@ npm run dev
    Если клиент ругается на формат — на той же странице откройте **Legacy API keys** и возьмите **anon** (`eyJ...`).
 4. Secret key (`sb_secret_...`) во фронтенд **не** кладите.
 
+### Локальный Supabase
+
+Нужны Supabase CLI и Docker-compatible runtime. Для macOS можно использовать Docker Desktop либо Colima.
+
+```bash
+supabase start
+supabase db reset
+supabase status
+```
+
+Создайте игнорируемый файл `.env.development.local` и перенесите в него `API_URL` и `PUBLISHABLE_KEY` из `supabase status`:
+
+```dotenv
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_ANON_KEY=<local publishable key>
+```
+
+После этого `npm run dev` использует только локальный backend. Production build не читает `.env.development.local`.
+
 ### База данных
 
 В **SQL Editor** выполните по порядку:
@@ -45,6 +66,8 @@ npm run dev
 1. [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql) — таблицы, RLS, realtime
 2. [`supabase/migrations/002_storage.sql`](supabase/migrations/002_storage.sql) — аватары и приглашение по email
 3. [`supabase/migrations/003_data_integrity_and_rls.sql`](supabase/migrations/003_data_integrity_and_rls.sql) — owner/member-права, защита комментариев и assignee, атомарный DnD
+4. [`supabase/migrations/004_data_api_privileges.sql`](supabase/migrations/004_data_api_privileges.sql) — явные минимальные права Data API для новых Supabase-проектов
+5. [`supabase/migrations/005_owner_board_visibility.sql`](supabase/migrations/005_owner_board_visibility.sql) — корректный `insert().select()` при создании доски владельцем
 
 ### Auth
 
@@ -60,7 +83,7 @@ npm run dev
 
 `vercel.json` уже содержит SPA rewrite, поэтому прямые переходы и обновление вложенных роутов отдаются через `index.html`.
 
-Ссылка на продакшен: *будет добавлена после деплоя*.
+Ссылка на продакшен: [https://taskflow-one-livid-94.vercel.app](https://taskflow-one-livid-94.vercel.app).
 
 Тестовый пользователь: зарегистрируйте аккаунт через форму Sign up (email + пароль). После применения миграций при создании доски появляются колонки To Do / In Progress / Done.
 
@@ -69,14 +92,15 @@ npm run dev
 ```bash
 npm run lint
 npm test
+npm run test:local
 npm run build
 ```
 
-Добавлены unit-тесты для фильтрации задач, user-scoped query keys и расчёта DnD-позиций при активном фильтре.
+`npm run test:local` требует запущенный локальный Supabase и проверяет Auth, RLS, роли owner/member, Realtime, Storage, комментарии, task reorder и целостность assignee. Unit-тесты покрывают фильтрацию, user-scoped query keys и расчёт DnD-позиций при активном фильтре.
 
 ## Что бы улучшили при наличии времени
 
-- Деплой на Vercel и демо-аккаунт в README
+- Отдельный безопасный demo-проект Supabase с автоматически сбрасываемыми данными
 - Вложения файлов к задачам
 - Постоянный audit log в БД вместо локальной ленты
 - Интеграционные тесты RLS/Realtime против отдельного Supabase test project

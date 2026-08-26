@@ -11,6 +11,7 @@ import { deleteTask, updateTask } from '../../services/tasks'
 import { queryKeys } from '../../lib/queryKeys'
 import type {
   BoardMemberWithProfile,
+  Column,
   Task,
   TaskPriority,
   TaskWithAssignee,
@@ -21,6 +22,8 @@ interface TaskModalProps {
   boardId: string
   open: boolean
   onClose: () => void
+  columns: Column[]
+  onMoveTask: (taskId: string, targetColumnId: string) => Promise<void>
 }
 
 const priorityOptions: TaskPriority[] = ['low', 'medium', 'high']
@@ -28,7 +31,7 @@ const priorityOptions: TaskPriority[] = ['low', 'medium', 'high']
 const selectClassName =
   'h-10 w-full rounded-lg border border-border bg-surface px-3 text-base text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm'
 
-export function TaskModal({ task, boardId, open, onClose }: TaskModalProps) {
+export function TaskModal({ task, boardId, open, onClose, columns, onMoveTask }: TaskModalProps) {
   const queryClient = useQueryClient()
   const toast = useToast()
   const { members } = useMembers(boardId)
@@ -154,6 +157,15 @@ export function TaskModal({ task, boardId, open, onClose }: TaskModalProps) {
     }
   }
 
+  const handleColumnChange = async (columnId: string) => {
+    if (!task || columnId === task.column_id) return
+    try {
+      await onMoveTask(task.id, columnId)
+    } catch {
+      toast.error('Failed to move task')
+    }
+  }
+
   if (!task) return null
 
   return (
@@ -216,6 +228,19 @@ export function TaskModal({ task, boardId, open, onClose }: TaskModalProps) {
         </label>
 
         <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-text">Column</span>
+          <select
+            className={selectClassName}
+            value={task.column_id}
+            onChange={(event) => void handleColumnChange(event.target.value)}
+          >
+            {[...columns].sort((a, b) => a.position - b.position).map((column) => (
+              <option key={column.id} value={column.id}>{column.title}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-text">Priority</span>
           <select
             className={selectClassName}
@@ -234,7 +259,7 @@ export function TaskModal({ task, boardId, open, onClose }: TaskModalProps) {
           label="Due date"
           type="date"
           value={dueDate}
-          onChange={(event) => void handleDueDateChange(event.target.value)}
+          onInput={(event) => void handleDueDateChange(event.currentTarget.value)}
         />
 
         <label className="flex flex-col gap-1.5">

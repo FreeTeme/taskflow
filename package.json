@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:local": "node scripts/local-integration.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
