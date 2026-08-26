@@ -41,6 +41,36 @@ function sortTasksByPosition(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => a.position - b.position)
 }
 
+function applyMoveUpdates(
+  tasksByColumn: Record<string, Task[]>,
+  updates: { id: string; column_id: string; position: number }[],
+  columnIds: string[],
+): Record<string, Task[]> {
+  const updatesById = new Map(updates.map((update) => [update.id, update]))
+  const updatedTasks = Object.values(tasksByColumn)
+    .flat()
+    .map((task) => {
+      const update = updatesById.get(task.id)
+
+      return update
+        ? {
+            ...task,
+            column_id: update.column_id,
+            position: update.position,
+          }
+        : task
+    })
+
+  return Object.fromEntries(
+    columnIds.map((columnId) => [
+      columnId,
+      sortTasksByPosition(
+        updatedTasks.filter((task) => task.column_id === columnId),
+      ),
+    ]),
+  )
+}
+
 const collisionDetectionStrategy: CollisionDetection = (args) =>
   closestCorners({
     ...args,
@@ -80,6 +110,7 @@ export function KanbanBoard({
 
   const [tasksByColumn, setTasksByColumn] = useState(serverTasksByColumn)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [isDropPending, setIsDropPending] = useState(false)
 
   const visibleTaskIds = useMemo(
     () => new Set(visibleTasks.map((task) => task.id)),
@@ -97,10 +128,10 @@ export function KanbanBoard({
   )
 
   useEffect(() => {
-    if (!activeTask) {
+    if (!activeTask && !isDropPending) {
       setTasksByColumn(serverTasksByColumn)
     }
-  }, [serverTasksByColumn, activeTask])
+  }, [serverTasksByColumn, activeTask, isDropPending])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -170,9 +201,11 @@ export function KanbanBoard({
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-    setActiveTask(null)
 
-    if (!over) return
+    if (!over) {
+      setActiveTask(null)
+      return
+    }
 
     const activeId = String(active.id)
     const overId = String(over.id)
@@ -183,13 +216,19 @@ export function KanbanBoard({
             serverTasksByColumn[columnId]?.some((task) => task.id === overId),
           )
 
-    if (!overContainer) return
+    if (!overContainer) {
+      setActiveTask(null)
+      return
+    }
 
     const sourceColumnId = columnIds.find((columnId) =>
       serverTasksByColumn[columnId]?.some((task) => task.id === activeId),
     )
 
-    if (!sourceColumnId) return
+    if (!sourceColumnId) {
+      setActiveTask(null)
+      return
+    }
 
     const targetTasks = serverTasksByColumn[overContainer] ?? []
     const targetIndex = columnIds.includes(overId)
@@ -229,8 +268,21 @@ export function KanbanBoard({
             overIndex,
           )
 
-    if (updates.length > 0) {
+    if (updates.length === 0) {
+      setActiveTask(null)
+      return
+    }
+
+    setIsDropPending(true)
+    setTasksByColumn(
+      applyMoveUpdates(serverTasksByColumn, updates, columnIds),
+    )
+    setActiveTask(null)
+
+    try {
       await onMoveTask(updates)
+    } finally {
+      setIsDropPending(false)
     }
   }
 
