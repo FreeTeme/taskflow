@@ -12,7 +12,7 @@ import {
   type DragStartEvent,
   type CollisionDetection,
 } from '@dnd-kit/core'
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Column, Task } from '../../types/database'
 import {
   buildMoveUpdates,
@@ -39,17 +39,6 @@ interface KanbanBoardProps {
 
 function sortTasksByPosition(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => a.position - b.position)
-}
-
-function cloneTasksByColumn(
-  tasksByColumn: Record<string, Task[]>,
-): Record<string, Task[]> {
-  return Object.fromEntries(
-    Object.entries(tasksByColumn).map(([columnId, columnTasks]) => [
-      columnId,
-      [...columnTasks],
-    ]),
-  )
 }
 
 const collisionDetectionStrategy: CollisionDetection = (args) =>
@@ -187,76 +176,19 @@ export function KanbanBoard({
 
     const activeId = String(active.id)
     const overId = String(over.id)
-
-    const activeContainer = findContainer(activeId)
+    const overColumnId = over.data.current?.columnId
     const overContainer =
-      findContainer(overId) ??
-      (columnIds.includes(overId) ? overId : undefined)
+      typeof overColumnId === 'string'
+        ? overColumnId
+        : findContainer(overId)
 
-    if (!activeContainer || !overContainer) return
+    if (!overContainer) return
 
-    let nextTasksByColumn = cloneTasksByColumn(tasksByColumn)
-
-    if (activeContainer === overContainer) {
-      const columnTasks = nextTasksByColumn[activeContainer] ?? []
-      const activeIndex = columnTasks.findIndex((task) => task.id === activeId)
-      const overIndex = columnIds.includes(overId)
-        ? columnTasks.length - 1
-        : columnTasks.findIndex((task) => task.id === overId)
-
-      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-        nextTasksByColumn[activeContainer] = arrayMove(
-          columnTasks,
-          activeIndex,
-          overIndex,
-        )
-      }
-    } else {
-      // A fast pointer movement can reach dragEnd before React commits the
-      // optimistic dragOver state. Complete the cross-column move here too so
-      // dropping never depends on how many intermediate pointer events fired.
-      const sourceTasks = nextTasksByColumn[activeContainer] ?? []
-      const activeIndex = sourceTasks.findIndex((task) => task.id === activeId)
-      const movedTask = sourceTasks[activeIndex]
-
-      if (!movedTask) return
-
-      const targetTasks = nextTasksByColumn[overContainer] ?? []
-      const targetIndex = columnIds.includes(overId)
-        ? targetTasks.length
-        : targetTasks.findIndex((task) => task.id === overId)
-      const nextTargetTasks = [...targetTasks]
-
-      nextTargetTasks.splice(
-        targetIndex >= 0 ? targetIndex : nextTargetTasks.length,
-        0,
-        { ...movedTask, column_id: overContainer },
-      )
-
-      nextTasksByColumn = {
-        ...nextTasksByColumn,
-        [activeContainer]: sourceTasks.filter((task) => task.id !== activeId),
-        [overContainer]: nextTargetTasks,
-      }
-    }
-
-    nextTasksByColumn = Object.fromEntries(
-      Object.entries(nextTasksByColumn).map(([columnId, columnTasks]) => [
-        columnId,
-        columnTasks.map((task, index) => ({
-          ...task,
-          column_id: columnId,
-          position: index,
-        })),
-      ]),
-    )
-
-    setTasksByColumn(nextTasksByColumn)
-
-    const targetTasks = nextTasksByColumn[overContainer] ?? []
-    const overIndex = targetTasks.findIndex((task) => task.id === activeId)
-
-    if (overIndex === -1) return
+    const targetTasks = serverTasksByColumn[overContainer] ?? []
+    const targetIndex = columnIds.includes(overId)
+      ? targetTasks.length
+      : targetTasks.findIndex((task) => task.id === overId)
+    const overIndex = targetIndex >= 0 ? targetIndex : targetTasks.length
 
     const updates = buildMoveUpdates(
       serverTasksByColumn,
