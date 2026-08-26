@@ -34,8 +34,18 @@ export function BoardMembersModal({
     if (!email.trim()) return
 
     try {
-      await inviteMember(email)
-      toast.success('Member invited')
+      const result = await inviteMember(email)
+      if (result.status === 'already_member') {
+        toast.success('This person is already a board member')
+      } else if (result.warning) {
+        toast.error(result.warning)
+      } else if (result.status === 'added_and_emailed') {
+        toast.success('Member added and sign-in email sent')
+      } else if (result.status === 'added') {
+        toast.success('Member added')
+      } else {
+        toast.success('Invitation email sent')
+      }
       setEmail('')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to invite member'
@@ -102,12 +112,15 @@ export function BoardMembersModal({
         {isOwner ? (
           <form onSubmit={handleInvite} className="flex flex-col gap-2 border-t border-border pt-4">
             <Input
-              label="Invite by email"
+              label="Invite member by email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="user@example.com"
             />
+            <p className="text-xs text-text-muted">
+              We will email them a secure link to open this board.
+            </p>
             <div className="flex justify-end">
               <Button type="submit" loading={isInviting} disabled={!email.trim()}>
                 Invite
