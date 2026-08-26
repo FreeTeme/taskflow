@@ -1,110 +1,172 @@
 # TaskFlow
 
-Kanban-приложение для управления задачами (Jira-lite): доски, колонки, карточки с drag-and-drop, совместный доступ и realtime-обновления.
+Адаптивное Kanban-приложение для командной работы: доски, колонки, задачи, drag-and-drop, комментарии, роли, realtime и внутренние уведомления.
 
-**Стек:** React 19 + TypeScript + Vite + Tailwind CSS + Supabase (Postgres, Auth, Realtime, Storage) + React Query + @dnd-kit.
+## Live demo
 
-**Репозиторий:** [github.com/FreeTeme/taskflow](https://github.com/FreeTeme/taskflow)
+**Production:** [https://taskflow-one-livid-94.vercel.app](https://taskflow-one-livid-94.vercel.app)
 
-**Production:** [taskflow-one-livid-94.vercel.app](https://taskflow-one-livid-94.vercel.app)
+**Repository:** [https://github.com/FreeTeme/taskflow](https://github.com/FreeTeme/taskflow)
 
-## Реализованные уровни
+Для проверки зарегистрируйте два аккаунта через интерфейс. Владелец может пригласить второй аккаунт по email: приглашённая доска сразу появится у участника в списке, а в шапке отобразится внутреннее уведомление.
 
-| Уровень | Статус | Что есть |
-| --- | --- | --- |
-| **1. MVP** | Готово | Регистрация / вход / выход, защита роутов, доски, колонки, задачи, drag-and-drop, адаптивный UI, лоадеры и ошибки |
-| **2. Full** | Готово | Детали задачи, комментарии, realtime, приглашение участников (owner / member), профиль и аватар |
-| **3. Bonus** | Готово | Фильтры и поиск, лог активности, тёмная тема, горячие клавиши `N` / `Esc` |
+## Что реализовано
 
-Не сделано из бонусов: прикрепление файлов к задачам (есть только аватар в Storage).
+### MVP
 
-## Запуск
+- регистрация, вход и выход по email/password через Supabase Auth;
+- защищённые роуты;
+- создание и удаление досок;
+- создание, переименование и удаление колонок;
+- создание, редактирование и удаление задач;
+- drag-and-drop задач внутри колонки и между колонками;
+- состояния загрузки, ошибок и пустых списков;
+- адаптивный интерфейс для desktop и mobile.
+
+### Полная версия
+
+- модальное окно задачи: название, описание, приоритет, дедлайн и исполнитель;
+- комментарии с realtime-обновлением;
+- роли `owner` и `member`;
+- управление участниками владельцем доски;
+- приглашение существующего пользователя по email;
+- внутренний центр уведомлений без SMTP;
+- автоматическое появление приглашённой доски в списке участника;
+- профиль пользователя и загрузка аватара в Supabase Storage;
+- строгие RLS-политики и проверка целостности assignee на уровне БД.
+
+### Дополнительно
+
+- поиск и фильтры по задачам;
+- локальная лента активности;
+- светлая и тёмная темы;
+- горячие клавиши `N` и `Esc`;
+- скрытые нативные полосы прокрутки с сохранением прокрутки мышью, клавиатурой и касанием;
+- realtime-синхронизация задач, колонок, комментариев, участников и уведомлений.
+
+## Сценарий проверки
+
+1. Зарегистрируйте аккаунт владельца и создайте доску.
+2. Создайте колонки и несколько задач.
+3. Проверьте перемещение карточек между колонками.
+4. Откройте задачу, измените поля, назначьте участника и добавьте комментарий.
+5. Зарегистрируйте второй аккаунт TaskFlow.
+6. Под владельцем откройте **Members** и добавьте email второго аккаунта.
+7. Войдите вторым аккаунтом: доска появится в **Boards**, а приглашение — под значком уведомлений.
+
+## Технологии
+
+- React 19, TypeScript, Vite;
+- Tailwind CSS 4;
+- Supabase Auth, Postgres, Realtime и Storage;
+- TanStack React Query;
+- `@dnd-kit`;
+- Phosphor Icons;
+- Vitest и Oxlint;
+- Vercel.
+
+## Архитектура и безопасность
+
+- запросы к данным вынесены в `src/services`;
+- серверное состояние и мутации управляются через React Query;
+- пользовательские query keys изолированы по `user.id`;
+- доступ к доскам и связанным данным ограничен PostgreSQL RLS;
+- приглашение, добавление участника и создание уведомления выполняются одной транзакцией RPC;
+- изменение порядка задач выполняется атомарной PostgreSQL-функцией;
+- удалённый участник автоматически снимается с назначенных задач;
+- секретный Supabase key не используется во frontend.
+
+Подробные результаты: [технический аудит](./AUDIT_REPORT.md) и [design QA](./design-qa.md).
+
+## Локальный запуск
+
+Требования: Node.js 20.19+ или 22.12+ и npm.
 
 ```bash
 git clone https://github.com/FreeTeme/taskflow.git
 cd taskflow
-npm install
-cp .env.example .env   # заполнить ключи Supabase
+npm ci
+cp .env.example .env
 npm run dev
 ```
 
-Приложение откроется на `http://localhost:5173`.
+Заполните `.env`:
 
-### Как заполнить `.env`
-
-1. Откройте проект в [Supabase Dashboard](https://supabase.com/dashboard).
-2. `VITE_SUPABASE_URL` — **Settings → Data API → Project URL**  
-   (вид `https://xxxx.supabase.co`).
-3. `VITE_SUPABASE_ANON_KEY` — **Settings → API Keys**  
-   скопируйте **publishable** ключ (`sb_publishable_...`).  
-   Если клиент ругается на формат — на той же странице откройте **Legacy API keys** и возьмите **anon** (`eyJ...`).
-4. Secret key (`sb_secret_...`) во фронтенд **не** кладите.
-
-### Локальный Supabase
-
-Нужны Supabase CLI и Docker-compatible runtime. Для macOS можно использовать Docker Desktop либо Colima.
-
-```bash
-supabase start
-supabase db reset
-supabase status
+```dotenv
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-publishable-key
 ```
 
-Создайте игнорируемый файл `.env.development.local` и перенесите в него `API_URL` и `PUBLISHABLE_KEY` из `supabase status`:
+Приложение откроется на [http://localhost:5173](http://localhost:5173).
+
+## Настройка Supabase
+
+1. Создайте проект в [Supabase Dashboard](https://supabase.com/dashboard).
+2. Включите Email provider в **Authentication → Sign In / Providers**.
+3. Привяжите проект через Supabase CLI.
+4. Примените все миграции:
+
+```bash
+npx supabase login
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase db push
+```
+
+Миграции в [`supabase/migrations`](./supabase/migrations) создают схему, RLS, Storage, realtime, атомарный DnD и внутренние уведомления. Приглашения работают для уже зарегистрированных аккаунтов TaskFlow и не требуют SMTP.
+
+### Полностью локальный backend
+
+Требуется Docker Desktop или совместимый runtime.
+
+```bash
+npx supabase start
+npx supabase db reset
+npx supabase status
+```
+
+Добавьте локальные значения `API_URL` и `PUBLISHABLE_KEY` из `supabase status` в `.env.development.local`:
 
 ```dotenv
 VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<local publishable key>
+VITE_SUPABASE_ANON_KEY=your-local-publishable-key
 ```
-
-После этого `npm run dev` использует только локальный backend. Production build не читает `.env.development.local`.
-
-### База данных
-
-В **SQL Editor** выполните по порядку:
-
-1. [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql) — таблицы, RLS, realtime
-2. [`supabase/migrations/002_storage.sql`](supabase/migrations/002_storage.sql) — аватары и приглашение по email
-3. [`supabase/migrations/003_data_integrity_and_rls.sql`](supabase/migrations/003_data_integrity_and_rls.sql) — owner/member-права, защита комментариев и assignee, атомарный DnD
-4. [`supabase/migrations/004_data_api_privileges.sql`](supabase/migrations/004_data_api_privileges.sql) — явные минимальные права Data API для новых Supabase-проектов
-5. [`supabase/migrations/005_owner_board_visibility.sql`](supabase/migrations/005_owner_board_visibility.sql) — корректный `insert().select()` при создании доски владельцем
-6. [`supabase/migrations/006_in_app_notifications.sql`](supabase/migrations/006_in_app_notifications.sql) — внутренние уведомления о приглашениях и realtime-обновление списка досок
-7. [`supabase/migrations/007_invite_member_feedback.sql`](supabase/migrations/007_invite_member_feedback.sql) — понятная ошибка при повторном добавлении участника
-8. [`supabase/migrations/008_backfill_board_invites.sql`](supabase/migrations/008_backfill_board_invites.sql) — уведомления для участников, добавленных до появления внутреннего центра уведомлений
-
-### Auth
-
-- Email + пароль: включите Email provider.
-- Приглашения работают внутри TaskFlow для уже зарегистрированных пользователей; SMTP не требуется.
-
-## Деплой (Vercel)
-
-1. Import репозитория на [vercel.com](https://vercel.com).
-2. Framework: Vite, build: `npm run build`, output: `dist`.
-3. Env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-4. В Supabase → Authentication → URL Configuration добавьте Vercel URL в Site URL и Redirect URLs.
-
-`vercel.json` уже содержит SPA rewrite, поэтому прямые переходы и обновление вложенных роутов отдаются через `index.html`.
-
-Ссылка на продакшен: [https://taskflow-one-livid-94.vercel.app](https://taskflow-one-livid-94.vercel.app).
-
-Тестовый пользователь: зарегистрируйте аккаунт через форму Sign up (email + пароль). После применения миграций при создании доски появляются колонки To Do / In Progress / Done.
 
 ## Проверки
 
 ```bash
 npm run lint
 npm test
-npm run test:local
 npm run build
 ```
 
-`npm run test:local` требует запущенный локальный Supabase и проверяет Auth, RLS, роли owner/member, Realtime, Storage, комментарии, task reorder и целостность assignee. Unit-тесты покрывают фильтрацию, user-scoped query keys и расчёт DnD-позиций при активном фильтре.
+Текущее состояние:
 
-## Что бы улучшили при наличии времени
+- production build — успешно;
+- unit tests — 6/6 успешно;
+- lint — без ошибок;
+- Supabase migrations — применены к production;
+- responsive QA — проверен на desktop и mobile.
 
-- Отдельный безопасный demo-проект Supabase с автоматически сбрасываемыми данными
-- Вложения файлов к задачам
-- Постоянный audit log в БД вместо локальной ленты
-- Интеграционные тесты RLS/Realtime против отдельного Supabase test project
-- Уведомления о назначении задачи и новых комментариях
+Дополнительная интеграционная проверка с локальным Supabase:
+
+```bash
+npm run test:local
+```
+
+Она покрывает Auth, RLS, owner/member-права, Realtime, Storage, комментарии, порядок задач и целостность назначений.
+
+## Деплой на Vercel
+
+- Framework preset: `Vite`;
+- Build command: `npm run build`;
+- Output directory: `dist`;
+- переменные окружения: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+
+В Supabase → **Authentication → URL Configuration** добавьте production URL в Site URL и Redirect URLs. Файл `vercel.json` содержит SPA rewrite для прямого открытия вложенных роутов.
+
+## Ограничения и дальнейшие улучшения
+
+- вложения файлов непосредственно к задачам;
+- постоянный серверный audit log вместо локальной ленты;
+- уведомления о назначении задачи и новых комментариях;
+- отдельный автоматически сбрасываемый demo-проект Supabase.
