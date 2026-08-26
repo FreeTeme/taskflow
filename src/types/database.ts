@@ -61,6 +61,28 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          actor_id: string
+          board_id: string
+          type: 'board_invite'
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          actor_id: string
+          board_id: string
+          type?: 'board_invite'
+          read_at?: string | null
+        }
+        Update: {
+          read_at?: string | null
+        }
+        Relationships: []
+      }
       columns: {
         Row: {
           id: string
@@ -156,6 +178,7 @@ export type Database = {
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Board = Database['public']['Tables']['boards']['Row']
 export type BoardMember = Database['public']['Tables']['board_members']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
 export type Column = Database['public']['Tables']['columns']['Row']
 export type Task = Database['public']['Tables']['tasks']['Row']
 export type Comment = Database['public']['Tables']['comments']['Row']
@@ -170,4 +193,9 @@ export type CommentWithAuthor = Comment & {
 
 export type BoardMemberWithProfile = BoardMember & {
   profile?: Profile | null
+}
+
+export type NotificationWithDetails = Notification & {
+  board?: Board | null
+  actor?: Profile | null
 }

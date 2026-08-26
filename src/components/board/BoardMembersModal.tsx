@@ -34,18 +34,8 @@ export function BoardMembersModal({
     if (!email.trim()) return
 
     try {
-      const result = await inviteMember(email)
-      if (result.status === 'already_member') {
-        toast.success('This person is already a board member')
-      } else if (result.warning) {
-        toast.error(result.warning)
-      } else if (result.status === 'added_and_emailed') {
-        toast.success('Member added and sign-in email sent')
-      } else if (result.status === 'added') {
-        toast.success('Member added')
-      } else {
-        toast.success('Invitation email sent')
-      }
+      await inviteMember(email)
+      toast.success('Member added. The board is now in their list.')
       setEmail('')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to invite member'
@@ -119,7 +109,7 @@ export function BoardMembersModal({
               placeholder="user@example.com"
             />
             <p className="text-xs text-text-muted">
-              We will email them a secure link to open this board.
+              They need an existing TaskFlow account. The board will appear in their list.
             </p>
             <div className="flex justify-end">
               <Button type="submit" loading={isInviting} disabled={!email.trim()}>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CaretRight, CheckCircle } from '@phosphor-icons/react'
 import type { Board } from '../../types/database'
+import { NotificationMenu } from '../shared/NotificationMenu'
 
 interface BoardHeaderProps {
   board: Board
@@ -31,6 +32,9 @@ export function BoardHeader({ board }: BoardHeaderProps) {
             <CaretRight aria-hidden="true" size={14} className="shrink-0 text-text-muted" />
             <span className="truncate text-sm text-text-muted">{board.title}</span>
           </nav>
+          <div className="ml-auto">
+            <NotificationMenu />
+          </div>
         </div>
         <div className="pb-6 pt-2">
           <h1 className="text-2xl font-semibold leading-[1.1] tracking-[-0.025em] text-text sm:text-[1.75rem]">

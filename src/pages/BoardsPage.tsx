@@ -8,6 +8,7 @@ import { useBoards } from '../hooks/useBoards'
 import { Button } from '../components/shared/Button'
 import { Input } from '../components/shared/Input'
 import { ConfirmDialog, Modal } from '../components/shared/Modal'
+import { NotificationMenu } from '../components/shared/NotificationMenu'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -83,6 +84,7 @@ export function BoardsPage() {
             <p className="text-sm text-text-muted">Your kanban boards</p>
           </div>
           <nav aria-label="Account" className="flex flex-wrap items-center justify-end gap-2 text-sm sm:gap-3">
+            <NotificationMenu />
             <ThemeToggle />
             <Link
               to="/profile"

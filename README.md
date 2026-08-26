@@ -68,12 +68,14 @@ VITE_SUPABASE_ANON_KEY=<local publishable key>
 3. [`supabase/migrations/003_data_integrity_and_rls.sql`](supabase/migrations/003_data_integrity_and_rls.sql) — owner/member-права, защита комментариев и assignee, атомарный DnD
 4. [`supabase/migrations/004_data_api_privileges.sql`](supabase/migrations/004_data_api_privileges.sql) — явные минимальные права Data API для новых Supabase-проектов
 5. [`supabase/migrations/005_owner_board_visibility.sql`](supabase/migrations/005_owner_board_visibility.sql) — корректный `insert().select()` при создании доски владельцем
+6. [`supabase/migrations/006_in_app_notifications.sql`](supabase/migrations/006_in_app_notifications.sql) — внутренние уведомления о приглашениях и realtime-обновление списка досок
+7. [`supabase/migrations/007_invite_member_feedback.sql`](supabase/migrations/007_invite_member_feedback.sql) — понятная ошибка при повторном добавлении участника
+8. [`supabase/migrations/008_backfill_board_invites.sql`](supabase/migrations/008_backfill_board_invites.sql) — уведомления для участников, добавленных до появления внутреннего центра уведомлений
 
 ### Auth
 
 - Email + пароль: включите Email provider.
-- Для писем-приглашений настройте собственный SMTP в **Authentication → Emails → SMTP Settings**. Встроенный SMTP Supabase отправляет письма только участникам команды проекта и ограничен двумя письмами в час.
-- Разверните защищённую функцию приглашений: `supabase functions deploy invite-board-member`.
+- Приглашения работают внутри TaskFlow для уже зарегистрированных пользователей; SMTP не требуется.
 
 ## Деплой (Vercel)
 

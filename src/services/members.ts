@@ -38,32 +38,19 @@ export async function fetchMembers(boardId: string): Promise<BoardMemberWithProf
 export async function inviteMemberByEmail(
   boardId: string,
   email: string,
-): Promise<{ status: 'added' | 'added_and_emailed' | 'already_member' | 'invited'; warning?: string }> {
+): Promise<string> {
   const normalizedEmail = email.trim().toLowerCase()
   if (!normalizedEmail) {
     throw new Error('Email is required')
   }
 
-  const { data, error } = await supabase.functions.invoke('invite-board-member', {
-    body: { boardId, email: normalizedEmail },
+  const { data, error } = await supabase.rpc('invite_member_by_email', {
+    p_board_id: boardId,
+    p_email: normalizedEmail,
   })
 
-  if (error) {
-    const context = error.context as Response | undefined
-    if (context) {
-      try {
-        const body = await context.clone().json() as { error?: string }
-        throw new Error(body.error ?? error.message)
-      } catch (contextError) {
-        if (contextError instanceof Error && contextError.message !== 'Unexpected end of JSON input') {
-          throw contextError
-        }
-      }
-    }
-    throw error
-  }
-
-  return data as { status: 'added' | 'added_and_emailed' | 'already_member' | 'invited'; warning?: string }
+  if (error) throw error
+  return data as string
 }
 
 export async function removeMember(memberId: string): Promise<void> {
