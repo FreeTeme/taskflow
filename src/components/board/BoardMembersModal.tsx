@@ -7,6 +7,28 @@ import { useAuth } from '../../providers/AuthProvider'
 import { useToast } from '../../providers/ToastProvider'
 import type { BoardMemberWithProfile } from '../../types/database'
 
+function getInviteErrorMessage(error: unknown): string {
+  const message =
+    error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+      ? error.message
+      : ''
+
+  if (message.includes('No TaskFlow account found')) {
+    return 'No TaskFlow account uses this email. Ask them to create an account first.'
+  }
+  if (message.includes('already a board member')) {
+    return 'This person already has access to the board.'
+  }
+  if (message.includes('already the owner')) {
+    return 'You already own this board.'
+  }
+  if (message.includes('Only board owner')) {
+    return 'Only the board owner can add members.'
+  }
+
+  return 'Unable to add this member. Check the email and try again.'
+}
+
 interface BoardMembersModalProps {
   boardId: string
   ownerId: string
@@ -25,21 +47,25 @@ export function BoardMembersModal({
   const { members, inviteMember, removeMember, isInviting, isRemoving } =
     useMembers(boardId)
   const [email, setEmail] = useState('')
+  const [inviteError, setInviteError] = useState('')
   const [memberToRemove, setMemberToRemove] = useState<BoardMemberWithProfile | null>(null)
 
   const isOwner = user?.id === ownerId
 
   const handleInvite = async (event: FormEvent) => {
     event.preventDefault()
-    if (!email.trim()) return
+    if (!email.trim()) {
+      setInviteError('Enter the email used for their TaskFlow account.')
+      return
+    }
 
     try {
+      setInviteError('')
       await inviteMember(email)
       toast.success('Member added. The board is now in their list.')
       setEmail('')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to invite member'
-      toast.error(message)
+      setInviteError(getInviteErrorMessage(error))
     }
   }
 
@@ -60,6 +86,7 @@ export function BoardMembersModal({
       open={open}
       onClose={() => {
         setMemberToRemove(null)
+        setInviteError('')
         onClose()
       }}
       title={memberToRemove ? 'Remove member?' : 'Board members'}
@@ -105,8 +132,13 @@ export function BoardMembersModal({
               label="Invite member by email"
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                if (inviteError) setInviteError('')
+              }}
               placeholder="user@example.com"
+              error={inviteError}
+              required
             />
             <p className="text-xs text-text-muted">
               They need an existing TaskFlow account. The board will appear in their list.
