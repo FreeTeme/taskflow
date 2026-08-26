@@ -211,6 +211,33 @@ export function KanbanBoard({
           overIndex,
         )
       }
+    } else {
+      // A fast pointer movement can reach dragEnd before React commits the
+      // optimistic dragOver state. Complete the cross-column move here too so
+      // dropping never depends on how many intermediate pointer events fired.
+      const sourceTasks = nextTasksByColumn[activeContainer] ?? []
+      const activeIndex = sourceTasks.findIndex((task) => task.id === activeId)
+      const movedTask = sourceTasks[activeIndex]
+
+      if (!movedTask) return
+
+      const targetTasks = nextTasksByColumn[overContainer] ?? []
+      const targetIndex = columnIds.includes(overId)
+        ? targetTasks.length
+        : targetTasks.findIndex((task) => task.id === overId)
+      const nextTargetTasks = [...targetTasks]
+
+      nextTargetTasks.splice(
+        targetIndex >= 0 ? targetIndex : nextTargetTasks.length,
+        0,
+        { ...movedTask, column_id: overContainer },
+      )
+
+      nextTasksByColumn = {
+        ...nextTasksByColumn,
+        [activeContainer]: sourceTasks.filter((task) => task.id !== activeId),
+        [overContainer]: nextTargetTasks,
+      }
     }
 
     nextTasksByColumn = Object.fromEntries(
