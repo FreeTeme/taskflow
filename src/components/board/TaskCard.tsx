@@ -14,6 +14,7 @@ export function TaskCard({ task, onDelete, onTaskClick }: TaskCardProps) {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -34,17 +35,22 @@ export function TaskCard({ task, onDelete, onTaskClick }: TaskCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg border border-border bg-surface px-3 py-2 shadow-sm transition-[border-color,box-shadow,opacity] hover:border-primary/40 hover:shadow ${
+      onPointerDown={(event) => {
+        if ((event.target as HTMLElement).closest('[data-no-dnd]')) return
+        listeners?.onPointerDown?.(event)
+      }}
+      className={`group cursor-grab rounded-lg border border-border bg-surface px-3 py-2 shadow-sm transition-[border-color,box-shadow,opacity] hover:border-primary/40 hover:shadow active:cursor-grabbing ${
         isDragging ? 'opacity-40' : ''
       }`}
     >
       <div className="flex items-start gap-2">
         <button
+          ref={setActivatorNodeRef}
           type="button"
           aria-label={`Move ${task.title}`}
           className="mt-0.5 min-h-6 min-w-6 shrink-0 cursor-grab rounded px-1 text-text-muted outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:cursor-grabbing"
           {...attributes}
-          {...listeners}
+          onKeyDown={(event) => listeners?.onKeyDown?.(event)}
         >
           ⠿
         </button>
@@ -57,6 +63,7 @@ export function TaskCard({ task, onDelete, onTaskClick }: TaskCardProps) {
         </button>
         <button
           type="button"
+          data-no-dnd
           onClick={() => onDelete(task.id)}
           className="rounded px-1 text-xs text-text-muted opacity-0 outline-none transition-[color,background-color,opacity] hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger group-focus-within:opacity-100 group-hover:opacity-100"
           aria-label={`Delete ${task.title}`}

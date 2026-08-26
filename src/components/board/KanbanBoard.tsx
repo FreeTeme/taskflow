@@ -10,6 +10,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Column, Task } from '../../types/database'
@@ -50,6 +51,17 @@ function cloneTasksByColumn(
     ]),
   )
 }
+
+const collisionDetectionStrategy: CollisionDetection = (args) =>
+  closestCorners({
+    ...args,
+    // A sortable item is also a droppable. When it stays in the candidates,
+    // closestCorners can keep selecting the dragged card itself instead of the
+    // destination column, especially when that column is empty.
+    droppableContainers: args.droppableContainers.filter(
+      (container) => container.id !== args.active.id,
+    ),
+  })
 
 export function KanbanBoard({
   columns,
@@ -234,7 +246,7 @@ export function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetectionStrategy}
       accessibility={{
         screenReaderInstructions: {
           draggable:
