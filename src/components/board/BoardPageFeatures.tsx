@@ -91,7 +91,7 @@ export function BoardPageFeatures({
 
   return (
     <>
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6">
+      <div className="px-4 py-4 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-[220px] flex-1">
             <TaskSearch value={filters.search} onChange={setSearch} />
@@ -113,14 +113,16 @@ export function BoardPageFeatures({
           </button>
           <ThemeToggle />
         </div>
+      </div>
 
+      {children(filteredTasks, openTask, tasks)}
+
+      <div className="px-4 py-6 sm:px-6">
         <ActivityLog
           events={activityEvents}
           onClear={() => setActivityEvents([])}
         />
       </div>
-
-      {children(filteredTasks, openTask, tasks)}
 
       <TaskModal
         task={selectedTask}
