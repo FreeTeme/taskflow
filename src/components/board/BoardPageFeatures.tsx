@@ -117,24 +117,25 @@ export function BoardPageFeatures({
           </div>
 
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-sm lg:flex-row lg:items-end">
-            <div className="min-w-0 flex-1 lg:max-w-sm">
-            <TaskSearch value={filters.search} onChange={setSearch} />
+            <div className="flex min-w-0 flex-1 gap-2 lg:max-w-sm">
+              <div className="min-w-0 flex-1">
+                <TaskSearch value={filters.search} onChange={setSearch} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen((current) => !current)}
+                aria-expanded={mobileFiltersOpen}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text shadow-sm transition-[background-color,border-color,transform] hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-safe:active:scale-[0.96] lg:hidden"
+              >
+                {mobileFiltersOpen ? <X aria-hidden="true" size={17} /> : <Funnel aria-hidden="true" size={17} />}
+                <span className="hidden min-[360px]:inline">Filters</span>
+                {activeFilterCount > 0 ? (
+                  <span className="grid size-5 place-items-center rounded-full bg-primary text-xs font-semibold tabular-nums text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen((current) => !current)}
-              aria-expanded={mobileFiltersOpen}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text shadow-sm transition-[background-color,border-color,transform] hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-safe:active:scale-[0.96] lg:hidden"
-            >
-              {mobileFiltersOpen ? <X aria-hidden="true" size={17} /> : <Funnel aria-hidden="true" size={17} />}
-              Filters
-              {activeFilterCount > 0 ? (
-                <span className="grid size-5 place-items-center rounded-full bg-primary text-xs font-semibold tabular-nums text-primary-foreground">
-                  {activeFilterCount}
-                </span>
-              ) : null}
-            </button>
 
             <div className="hidden lg:block">
               <TaskFilters
