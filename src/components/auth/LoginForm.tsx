@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getAuthErrorMessage } from '../../lib/authErrors'
 import { useAuth } from '../../providers/AuthProvider'
 import { useToast } from '../../providers/ToastProvider'
-import { OAuthButton } from './OAuthButton'
 import { Button } from '../shared/Button'
 import { Input } from '../shared/Input'
 
@@ -57,15 +56,6 @@ export function LoginForm() {
       <Button type="submit" loading={loading} className="mt-2 w-full">
         Sign in
       </Button>
-      <div className="relative my-2">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-surface px-2 text-text-muted">or</span>
-        </div>
-      </div>
-      <OAuthButton />
       <p className="text-center text-sm text-text-muted">
         Don&apos;t have an account?{' '}
         <Link to="/register" className="rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
