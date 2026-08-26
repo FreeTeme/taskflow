@@ -190,12 +190,38 @@ export function KanbanBoard({
       : targetTasks.findIndex((task) => task.id === overId)
     const overIndex = targetIndex >= 0 ? targetIndex : targetTasks.length
 
-    const updates = buildMoveUpdates(
-      serverTasksByColumn,
-      activeId,
-      overContainer,
-      overIndex,
-    )
+    const sourceColumnId = active.data.current?.columnId
+    const updates =
+      typeof sourceColumnId === 'string' && sourceColumnId !== overContainer
+        ? (() => {
+            const sourceIds = (serverTasksByColumn[sourceColumnId] ?? [])
+              .filter((task) => task.id !== activeId)
+              .map((task) => task.id)
+            const targetIds = targetTasks
+              .filter((task) => task.id !== activeId)
+              .map((task) => task.id)
+
+            targetIds.splice(overIndex, 0, activeId)
+
+            return [
+              ...sourceIds.map((id, position) => ({
+                id,
+                column_id: sourceColumnId,
+                position,
+              })),
+              ...targetIds.map((id, position) => ({
+                id,
+                column_id: overContainer,
+                position,
+              })),
+            ]
+          })()
+        : buildMoveUpdates(
+            serverTasksByColumn,
+            activeId,
+            overContainer,
+            overIndex,
+          )
 
     if (updates.length > 0) {
       await onMoveTask(updates)
