@@ -27,7 +27,7 @@ const dueDateOptions: Array<{ value: DueDateFilter; label: string }> = [
 ]
 
 const selectClassName =
-  'h-9 rounded-lg border border-border bg-surface px-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20'
+  'h-10 min-w-0 rounded-lg border border-border bg-surface px-3 text-base text-text shadow-sm outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm'
 
 export function TaskFilters({
   filters,
@@ -38,9 +38,9 @@ export function TaskFilters({
   onReset,
 }: TaskFiltersProps) {
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-text">Priority</span>
+    <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end">
+      <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+        <span className="text-xs font-medium text-text-muted">Priority</span>
         <select
           className={selectClassName}
           value={filters.priority}
@@ -56,8 +56,8 @@ export function TaskFilters({
         </select>
       </label>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-text">Assignee</span>
+      <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+        <span className="text-xs font-medium text-text-muted">Assignee</span>
         <select
           className={selectClassName}
           value={filters.assigneeId}
@@ -75,8 +75,8 @@ export function TaskFilters({
         </select>
       </label>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-text">Due date</span>
+      <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+        <span className="text-xs font-medium text-text-muted">Due date</span>
         <select
           className={selectClassName}
           value={filters.dueDate}
@@ -93,7 +93,7 @@ export function TaskFilters({
       <button
         type="button"
         onClick={onReset}
-        className="h-9 rounded-lg px-3 text-sm text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
+        className="h-10 rounded-lg px-3 text-sm font-medium text-text-muted transition-[background-color,color,transform] hover:bg-surface-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-safe:active:scale-[0.96]"
       >
         Reset filters
       </button>

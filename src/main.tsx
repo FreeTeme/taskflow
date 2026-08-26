@@ -6,6 +6,7 @@ import { AuthProvider } from './providers/AuthProvider.tsx'
 import { QueryProvider } from './providers/QueryProvider.tsx'
 import { ThemeProvider } from './providers/ThemeProvider.tsx'
 import { ToastProvider } from './providers/ToastProvider.tsx'
+import '@fontsource-variable/inter'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
